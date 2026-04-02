@@ -57,6 +57,29 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('keeps the 6-letter mode readable on a phone-sized viewport', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _buildGameApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedRandom(0),
+          mode: GameMode.sixLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('الوضع الحالي: 6 أحرف'), findsOneWidget);
+      expect(find.text('ابدأ التخمين'), findsOneWidget);
+      expect(find.text('0 / 6'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('renders a selected mode with the correct word length', (
       tester,
     ) async {

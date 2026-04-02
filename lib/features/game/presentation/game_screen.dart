@@ -289,6 +289,12 @@ class _GameLayout extends StatelessWidget {
     final size = MediaQuery.sizeOf(context);
     final compact = size.height < 700 || size.width < 640;
     final dense = size.width < 430 || size.height < 820;
+    final layoutProfile = _ModeLayoutProfile.resolve(
+      mode: session.mode,
+      size: size,
+      compact: compact,
+      dense: dense,
+    );
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -309,25 +315,18 @@ class _GameLayout extends StatelessWidget {
           delayFactor: 1,
           child: Card(
             child: Padding(
-              padding: EdgeInsets.all(
-                dense
-                    ? 10
-                    : compact
-                    ? 14
-                    : 18,
-              ),
+              padding: EdgeInsets.all(layoutProfile.cardPadding),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  _GuessGrid(session: session, compact: compact, dense: dense),
-                  SizedBox(
-                    height: dense
-                        ? 8
-                        : compact
-                        ? 12
-                        : 16,
+                  _GuessGrid(
+                    session: session,
+                    compact: compact,
+                    dense: dense,
+                    layoutProfile: layoutProfile,
                   ),
+                  SizedBox(height: layoutProfile.sectionSpacing),
                   _InputSection(
                     guessController: guessController,
                     currentLetterCount: currentLetterCount,
@@ -339,6 +338,7 @@ class _GameLayout extends StatelessWidget {
                     onSubmitGuess: onSubmitGuess,
                     onSkipPuzzle: onSkipPuzzle,
                     onUseHint: onUseHint,
+                    layoutProfile: layoutProfile,
                   ),
                 ],
               ),
@@ -358,6 +358,134 @@ class _GameLayout extends StatelessWidget {
         ),
       ],
     );
+  }
+}
+
+class _ModeLayoutProfile {
+  const _ModeLayoutProfile({
+    required this.tileSize,
+    required this.horizontalGap,
+    required this.verticalGap,
+    required this.boardSectionHeightFactor,
+    required this.boardSectionExtraHeight,
+    required this.boardSectionPadding,
+    required this.sectionSpacing,
+    required this.cardPadding,
+    required this.inputPanelPadding,
+    required this.stackActions,
+  });
+
+  final double tileSize;
+  final double horizontalGap;
+  final double verticalGap;
+  final double boardSectionHeightFactor;
+  final double boardSectionExtraHeight;
+  final double boardSectionPadding;
+  final double sectionSpacing;
+  final double cardPadding;
+  final double inputPanelPadding;
+  final bool stackActions;
+
+  static _ModeLayoutProfile resolve({
+    required GameMode mode,
+    required Size size,
+    required bool compact,
+    required bool dense,
+  }) {
+    final baseCardPadding = dense
+        ? 10.0
+        : compact
+        ? 14.0
+        : 18.0;
+    final baseSectionSpacing = dense
+        ? 8.0
+        : compact
+        ? 12.0
+        : 16.0;
+    final stackActions = size.width < 360;
+
+    return switch (mode) {
+      GameMode.threeLetters => _ModeLayoutProfile(
+        tileSize: dense
+            ? 56
+            : compact
+            ? 64
+            : 76,
+        horizontalGap: dense ? 8 : 10,
+        verticalGap: dense ? 7 : 9,
+        boardSectionHeightFactor: dense ? 0.18 : 0.22,
+        boardSectionExtraHeight: dense ? 18 : 24,
+        boardSectionPadding: dense ? 10 : 14,
+        sectionSpacing: baseSectionSpacing - 2,
+        cardPadding: baseCardPadding,
+        inputPanelPadding: dense ? 12 : 16,
+        stackActions: stackActions,
+      ),
+      GameMode.fourLetters => _ModeLayoutProfile(
+        tileSize: dense
+            ? 52
+            : compact
+            ? 60
+            : 70,
+        horizontalGap: dense ? 7 : 9,
+        verticalGap: dense ? 7 : 9,
+        boardSectionHeightFactor: dense ? 0.20 : 0.24,
+        boardSectionExtraHeight: dense ? 16 : 22,
+        boardSectionPadding: dense ? 10 : 14,
+        sectionSpacing: baseSectionSpacing,
+        cardPadding: baseCardPadding,
+        inputPanelPadding: dense ? 12 : 16,
+        stackActions: stackActions,
+      ),
+      GameMode.fiveLetters => _ModeLayoutProfile(
+        tileSize: dense
+            ? 48
+            : compact
+            ? 58
+            : 68,
+        horizontalGap: dense
+            ? 6
+            : compact
+            ? 8
+            : 10,
+        verticalGap: dense
+            ? 6
+            : compact
+            ? 8
+            : 10,
+        boardSectionHeightFactor: dense ? 0.22 : 0.28,
+        boardSectionExtraHeight: dense ? 14 : 20,
+        boardSectionPadding: dense ? 10 : 14,
+        sectionSpacing: baseSectionSpacing,
+        cardPadding: baseCardPadding,
+        inputPanelPadding: dense ? 12 : 16,
+        stackActions: stackActions,
+      ),
+      GameMode.sixLetters => _ModeLayoutProfile(
+        tileSize: dense
+            ? 44
+            : compact
+            ? 52
+            : 60,
+        horizontalGap: dense
+            ? 5
+            : compact
+            ? 6
+            : 8,
+        verticalGap: dense
+            ? 5
+            : compact
+            ? 7
+            : 8,
+        boardSectionHeightFactor: dense ? 0.24 : 0.29,
+        boardSectionExtraHeight: dense ? 12 : 18,
+        boardSectionPadding: dense ? 8 : 12,
+        sectionSpacing: dense ? 10 : 14,
+        cardPadding: dense ? baseCardPadding - 1 : baseCardPadding,
+        inputPanelPadding: dense ? 10 : 14,
+        stackActions: size.width < 390,
+      ),
+    };
   }
 }
 
@@ -467,6 +595,9 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final width = MediaQuery.sizeOf(context).width;
+    final compactHeader = width < 430;
+    final stackStats = width < 360;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -521,38 +652,45 @@ class _Header extends StatelessWidget {
           SizedBox(height: dense ? 8 : 10),
           Align(
             alignment: Alignment.center,
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: dense ? 12 : 14,
-                vertical: dense ? 6 : 8,
-              ),
-              decoration: BoxDecoration(
-                color: const Color(0xFFEAF3F0),
-                borderRadius: BorderRadius.circular(999),
-                border: Border.all(color: const Color(0xFFB9D7CF)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.category_outlined,
-                    size: dense ? 16 : 18,
-                    color: const Color(0xFF157A6E),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'الفئة: ${session.category}',
-                    style: textTheme.labelLarge?.copyWith(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: width - (dense ? 24 : 32)),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: dense ? 12 : 14,
+                  vertical: dense ? 6 : 8,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEAF3F0),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(color: const Color(0xFFB9D7CF)),
+                ),
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Icon(
+                      Icons.category_outlined,
+                      size: dense ? 16 : 18,
                       color: const Color(0xFF157A6E),
-                      fontWeight: FontWeight.w800,
                     ),
-                  ),
-                ],
+                    Text(
+                      'الفئة: ${session.category}',
+                      textAlign: TextAlign.center,
+                      style: textTheme.labelLarge?.copyWith(
+                        color: const Color(0xFF157A6E),
+                        fontWeight: FontWeight.w800,
+                        fontSize: compactHeader ? 13 : null,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ],
-        const SizedBox(height: 4),
+        SizedBox(height: dense ? 4 : 6),
         Align(
           alignment: Alignment.center,
           child: TextButton.icon(
@@ -568,25 +706,42 @@ class _Header extends StatelessWidget {
               ? 12
               : 16,
         ),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
+        if (stackStats)
+          Column(
+            children: [
+              _StatCard(
                 label: 'المحاولات المتبقية',
                 value: session.attemptsRemaining.toString(),
                 dense: dense,
               ),
-            ),
-            SizedBox(width: dense ? 8 : 12),
-            Expanded(
-              child: _StatCard(
+              SizedBox(height: dense ? 8 : 10),
+              _StatCard(
                 label: 'الجولة',
                 value: session.round.toString(),
                 dense: dense,
               ),
-            ),
-          ],
-        ),
+            ],
+          )
+        else
+          Row(
+            children: [
+              Expanded(
+                child: _StatCard(
+                  label: 'المحاولات المتبقية',
+                  value: session.attemptsRemaining.toString(),
+                  dense: dense,
+                ),
+              ),
+              SizedBox(width: dense ? 8 : 12),
+              Expanded(
+                child: _StatCard(
+                  label: 'الجولة',
+                  value: session.round.toString(),
+                  dense: dense,
+                ),
+              ),
+            ],
+          ),
       ],
     );
   }
@@ -604,6 +759,7 @@ class _InputSection extends StatelessWidget {
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
     required this.onUseHint,
+    required this.layoutProfile,
   });
 
   final TextEditingController guessController;
@@ -616,9 +772,12 @@ class _InputSection extends StatelessWidget {
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
+  final _ModeLayoutProfile layoutProfile;
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final compactLayout = width < 430;
     final progressColor = isGuessReady
         ? const Color(0xFF157A6E)
         : const Color(0xFFC84F4F);
@@ -631,68 +790,172 @@ class _InputSection extends StatelessWidget {
         ? session.remainingHintWait(now)
         : Duration.zero;
     final hintLetters = session.revealedHintLetters;
+    final lettersRemaining = max(0, mode.wordLength - currentLetterCount);
+    final statusLabel = isGuessReady
+        ? 'جاهز للتحقق'
+        : lettersRemaining == mode.wordLength
+        ? 'ابدأ التخمين'
+        : 'متبقي $lettersRemaining';
+    final statusBackground = isGuessReady
+        ? const Color(0xFF157A6E)
+        : const Color(0xFFF4E8C8);
+    final statusForeground = isGuessReady
+        ? Colors.white
+        : const Color(0xFF805B16);
+    final inputPanelColor = isGuessReady
+        ? const Color(0xFFF2FBF7)
+        : const Color(0xFFFFFCF6);
+    final countChip = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: progressBackground,
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Directionality(
+        textDirection: TextDirection.ltr,
+        child: Text(
+          '$currentLetterCount / ${mode.wordLength}',
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: progressColor,
+            fontWeight: FontWeight.w800,
+            fontSize: dense ? 13 : null,
+          ),
+        ),
+      ),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        TextField(
-          controller: guessController,
-          autofocus: kIsWeb,
-          textAlign: TextAlign.center,
-          keyboardType: TextInputType.text,
-          textInputAction: TextInputAction.done,
-          maxLength: mode.wordLength,
-          maxLengthEnforcement: MaxLengthEnforcement.enforced,
-          inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[\u0600-\u06FF]+')),
-          ],
-          style: Theme.of(
-            context,
-          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
-          decoration: InputDecoration(
-            labelText: 'التخمين الحالي',
-            hintText: 'اكتب كلمة من ${mode.wordLength} أحرف',
-            counterText: '',
-            suffixIcon: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: progressBackground,
-                borderRadius: BorderRadius.circular(14),
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.all(layoutProfile.inputPanelPadding),
+          decoration: BoxDecoration(
+            color: inputPanelColor,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: isGuessReady
+                  ? const Color(0xFF90CBBB)
+                  : const Color(0xFFD9D2C6),
+              width: isGuessReady ? 1.6 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: isGuessReady
+                    ? const Color(0x22157A6E)
+                    : const Color(0x0F1F2A2E),
+                blurRadius: isGuessReady ? 18 : 12,
+                offset: const Offset(0, 8),
               ),
-              child: Center(
-                widthFactor: 1,
-                child: Directionality(
-                  textDirection: TextDirection.ltr,
-                  child: Text(
-                    '$currentLetterCount / ${mode.wordLength}',
-                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                      color: progressColor,
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                runSpacing: 8,
+                spacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  Text(
+                    'المحاولة الحالية',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: const Color(0xFF5D635F),
                       fontWeight: FontWeight.w800,
-                      fontSize: dense ? 13 : null,
                     ),
                   ),
-                ),
-              ),
-            ),
-          ),
-          onSubmitted: (_) => onSubmitGuess(),
-        ),
-        SizedBox(height: dense ? 6 : 10),
-        Text(
-          isGuessReady
-              ? 'الطول صحيح. يمكنك التحقق الآن.'
-              : 'اكتب ${mode.wordLength} أحرف كاملة لتفعيل التحقق.',
-          textAlign: TextAlign.center,
-          style:
-              (dense
-                      ? Theme.of(context).textTheme.bodySmall
-                      : Theme.of(context).textTheme.bodyMedium)
-                  ?.copyWith(
-                    color: progressColor,
-                    fontWeight: FontWeight.w700,
-                    fontSize: dense ? 11 : 13,
+                  _StatusChip(
+                    label: statusLabel,
+                    background: statusBackground,
+                    foreground: statusForeground,
                   ),
+                ],
+              ),
+              SizedBox(height: dense ? 10 : 12),
+              TextField(
+                controller: guessController,
+                autofocus: kIsWeb,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.text,
+                textInputAction: TextInputAction.done,
+                maxLength: mode.wordLength,
+                maxLengthEnforcement: MaxLengthEnforcement.enforced,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(
+                    RegExp(r'[\u0600-\u06FF]+'),
+                  ),
+                ],
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
+                decoration: InputDecoration(
+                  labelText: 'التخمين الحالي',
+                  hintText: 'اكتب كلمة من ${mode.wordLength} أحرف',
+                  counterText: '',
+                  filled: false,
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                ),
+                onSubmitted: (_) => onSubmitGuess(),
+              ),
+              Divider(
+                height: dense ? 16 : 18,
+                color: isGuessReady
+                    ? const Color(0xFFCAE0D7)
+                    : const Color(0xFFE3DDD1),
+              ),
+              if (compactLayout)
+                Column(
+                  children: [
+                    countChip,
+                    SizedBox(height: dense ? 8 : 10),
+                    Text(
+                      isGuessReady
+                          ? 'الطول صحيح. يمكنك التحقق الآن.'
+                          : 'اكتب ${mode.wordLength} أحرف كاملة لتفعيل التحقق.',
+                      textAlign: TextAlign.center,
+                      style:
+                          (dense
+                                  ? Theme.of(context).textTheme.bodySmall
+                                  : Theme.of(context).textTheme.bodyMedium)
+                              ?.copyWith(
+                                color: progressColor,
+                                fontWeight: FontWeight.w700,
+                                fontSize: dense ? 11 : 13,
+                              ),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    countChip,
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        isGuessReady
+                            ? 'الطول صحيح. يمكنك التحقق الآن.'
+                            : 'اكتب ${mode.wordLength} أحرف كاملة لتفعيل التحقق.',
+                        textAlign: TextAlign.center,
+                        style:
+                            (dense
+                                    ? Theme.of(context).textTheme.bodySmall
+                                    : Theme.of(context).textTheme.bodyMedium)
+                                ?.copyWith(
+                                  color: progressColor,
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: dense ? 11 : 13,
+                                ),
+                      ),
+                    ),
+                  ],
+                ),
+            ],
+          ),
         ),
         SizedBox(height: dense ? 8 : 12),
         _HintPanel(
@@ -707,25 +970,38 @@ class _InputSection extends StatelessWidget {
           onUseHint: onUseHint,
         ),
         SizedBox(height: dense ? 8 : 12),
-        Row(
-          children: [
-            Expanded(
-              child: ElevatedButton.icon(
-                onPressed: isGuessReady ? onSubmitGuess : null,
-                icon: const Icon(Icons.check_circle_outline),
-                label: const Text('تحقق'),
+        if (layoutProfile.stackActions) ...[
+          ElevatedButton.icon(
+            onPressed: isGuessReady ? onSubmitGuess : null,
+            icon: const Icon(Icons.check_circle_outline),
+            label: const Text('تحقق'),
+          ),
+          const SizedBox(height: 10),
+          TextButton.icon(
+            onPressed: onSkipPuzzle,
+            icon: const Icon(Icons.autorenew_rounded),
+            label: const Text('لغز جديد'),
+          ),
+        ] else
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: isGuessReady ? onSubmitGuess : null,
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('تحقق'),
+                ),
               ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: TextButton.icon(
-                onPressed: onSkipPuzzle,
-                icon: const Icon(Icons.autorenew_rounded),
-                label: const Text('لغز جديد'),
+              const SizedBox(width: 10),
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: onSkipPuzzle,
+                  icon: const Icon(Icons.autorenew_rounded),
+                  label: const Text('لغز جديد'),
+                ),
               ),
-            ),
-          ],
-        ),
+            ],
+          ),
       ],
     );
   }
@@ -757,6 +1033,22 @@ class _HintPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
+    final compactHeader = size.width < 430;
+    final stateLabel = switch ((canUseHint, hasHintsRemaining)) {
+      (true, _) => 'جاهز',
+      (false, true) => 'مقفل',
+      (false, false) => 'اكتمل',
+    };
+    final stateBackground = switch ((canUseHint, hasHintsRemaining)) {
+      (true, _) => const Color(0xFFE4F2EF),
+      (false, true) => const Color(0xFFF5F2E8),
+      (false, false) => const Color(0xFFE9ECE8),
+    };
+    final stateForeground = switch ((canUseHint, hasHintsRemaining)) {
+      (true, _) => const Color(0xFF157A6E),
+      (false, true) => const Color(0xFF8A6D2D),
+      (false, false) => const Color(0xFF5D635F),
+    };
     final subtitle = switch ((canUseHint, hasHintsRemaining)) {
       (true, _) => 'التلميح التالي جاهز الآن.',
       (false, true) => 'التلميح التالي بعد ${_formatHintWait(nextHintWait)}.',
@@ -785,36 +1077,92 @@ class _HintPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.lightbulb_outline_rounded,
-                color: canUseHint
-                    ? const Color(0xFFE0A93B)
-                    : const Color(0xFF8E9B95),
-                size: dense ? 18 : 20,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'التلميحات',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
+          if (compactHeader)
+            Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              runSpacing: 8,
+              spacing: 8,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.lightbulb_outline_rounded,
+                      color: canUseHint
+                          ? const Color(0xFFE0A93B)
+                          : const Color(0xFF8E9B95),
+                      size: dense ? 18 : 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'التلميحات',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
+                ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _StatusChip(
+                      label: stateLabel,
+                      background: stateBackground,
+                      foreground: stateForeground,
+                    ),
+                    const SizedBox(width: 8),
+                    Directionality(
+                      textDirection: TextDirection.ltr,
+                      child: Text(
+                        '$revealedHintCount / $maxHints',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: const Color(0xFF5D635F),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                Icon(
+                  Icons.lightbulb_outline_rounded,
+                  color: canUseHint
+                      ? const Color(0xFFE0A93B)
+                      : const Color(0xFF8E9B95),
+                  size: dense ? 18 : 20,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'التلميحات',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-              Directionality(
-                textDirection: TextDirection.ltr,
-                child: Text(
-                  '$revealedHintCount / $maxHints',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: const Color(0xFF5D635F),
-                    fontWeight: FontWeight.w800,
+                _StatusChip(
+                  label: stateLabel,
+                  background: stateBackground,
+                  foreground: stateForeground,
+                ),
+                const SizedBox(width: 8),
+                Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(
+                    '$revealedHintCount / $maxHints',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                      color: const Color(0xFF5D635F),
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           SizedBox(height: dense ? 8 : 10),
           Wrap(
             spacing: dense ? 6 : 8,
@@ -943,6 +1291,36 @@ class _HintTile extends StatelessWidget {
   }
 }
 
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+  }
+}
+
 class _StatCard extends StatelessWidget {
   const _StatCard({
     required this.label,
@@ -1057,30 +1435,20 @@ class _GuessGrid extends StatelessWidget {
     required this.session,
     required this.compact,
     required this.dense,
+    required this.layoutProfile,
   });
 
   final GameSession session;
   final bool compact;
   final bool dense;
+  final _ModeLayoutProfile layoutProfile;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final horizontalGap = dense
-        ? 6.0
-        : compact
-        ? 8.0
-        : 10.0;
-    final verticalGap = dense
-        ? 6.0
-        : compact
-        ? 8.0
-        : 10.0;
-    final tileSize = dense
-        ? 48.0
-        : compact
-        ? 58.0
-        : 68.0;
+    final horizontalGap = layoutProfile.horizontalGap;
+    final verticalGap = layoutProfile.verticalGap;
+    final tileSize = layoutProfile.tileSize;
     final boardWidth =
         (tileSize * session.wordLength) +
         (horizontalGap * (session.wordLength - 1));
@@ -1088,13 +1456,33 @@ class _GuessGrid extends StatelessWidget {
         (tileSize * session.maxAttempts) +
         (verticalGap * (session.maxAttempts - 1));
     final sectionHeight = max(
-      boardHeight + (dense ? 12.0 : 18.0),
-      min(size.height * (dense ? 0.20 : 0.28), boardHeight + 24),
+      boardHeight + layoutProfile.boardSectionExtraHeight,
+      min(
+        size.height * layoutProfile.boardSectionHeightFactor,
+        boardHeight + (layoutProfile.boardSectionPadding * 2),
+      ),
     );
+    final activeRowIndex = session.outcome == SessionOutcome.inProgress
+        ? session.guesses.length.clamp(0, session.maxAttempts - 1)
+        : -1;
 
     return Center(
-      child: SizedBox(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOutCubic,
         height: sectionHeight,
+        padding: EdgeInsets.symmetric(
+          vertical: layoutProfile.boardSectionPadding,
+        ),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFFFFFF), Color(0xFFF8F4EC)],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFE5DED1)),
+        ),
         child: FittedBox(
           fit: BoxFit.scaleDown,
           child: SizedBox(
@@ -1109,6 +1497,7 @@ class _GuessGrid extends StatelessWidget {
                     tileSize: tileSize,
                     gap: horizontalGap,
                     wordLength: session.wordLength,
+                    isActive: index == activeRowIndex,
                     letters: index < session.guesses.length
                         ? GuessEvaluator.evaluate(
                             guess: session.guesses[index],
@@ -1131,6 +1520,7 @@ class _GuessRow extends StatelessWidget {
     required this.tileSize,
     required this.gap,
     required this.wordLength,
+    required this.isActive,
     this.letters,
   });
 
@@ -1138,6 +1528,7 @@ class _GuessRow extends StatelessWidget {
   final double tileSize;
   final double gap;
   final int wordLength;
+  final bool isActive;
 
   @override
   Widget build(BuildContext context) {
@@ -1149,6 +1540,7 @@ class _GuessRow extends StatelessWidget {
           padding: EdgeInsetsDirectional.only(start: index == 0 ? 0 : gap),
           child: _GuessTile(
             size: tileSize,
+            isActive: isActive,
             letter: letters == null ? '' : letters![index].letter,
             match: letters == null ? null : letters![index].match,
           ),
@@ -1162,11 +1554,13 @@ class _GuessRow extends StatelessWidget {
 class _GuessTile extends StatefulWidget {
   const _GuessTile({
     required this.size,
+    required this.isActive,
     required this.letter,
     required this.match,
   });
 
   final double size;
+  final bool isActive;
   final String letter;
   final LetterMatch? match;
 
@@ -1234,7 +1628,11 @@ class _GuessTileState extends State<_GuessTile>
         const Color(0xFFD8DDD7),
         const Color(0xFF415055),
       ),
-      null => (Colors.white, const Color(0xFFD9D2C6), const Color(0xFF1F2A2E)),
+      null => (
+        widget.isActive ? const Color(0xFFF4FBF8) : Colors.white,
+        widget.isActive ? const Color(0xFF5FAE9E) : const Color(0xFFD9D2C6),
+        const Color(0xFF1F2A2E),
+      ),
     };
 
     return AnimatedBuilder(
@@ -1255,7 +1653,15 @@ class _GuessTileState extends State<_GuessTile>
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: borderColor),
             boxShadow: widget.match == null
-                ? null
+                ? widget.isActive
+                      ? [
+                          BoxShadow(
+                            color: const Color(0x1F157A6E),
+                            blurRadius: 14,
+                            offset: const Offset(0, 6),
+                          ),
+                        ]
+                      : null
                 : [
                     BoxShadow(
                       color: backgroundColor.withValues(alpha: 0.18),
@@ -1297,6 +1703,9 @@ class _RoundResultDialog extends StatelessWidget {
     final isWin = result.type == RoundResultType.won;
     final color = isWin ? const Color(0xFF157A6E) : const Color(0xFFC84F4F);
     final accent = isWin ? const Color(0xFFE0A93B) : const Color(0xFFF2B3B3);
+    final attemptsLabel = isWin
+        ? '${result.attemptsUsed} / ${ArabicWordRules.maxAttempts} محاولات'
+        : 'استخدمت ${result.attemptsUsed} / ${ArabicWordRules.maxAttempts}';
 
     return Center(
       child: ConstrainedBox(
@@ -1342,6 +1751,24 @@ class _RoundResultDialog extends StatelessWidget {
                       color: const Color(0xFF5D635F),
                     ),
                   ),
+                  const SizedBox(height: 12),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _ResultPill(
+                        label: 'الجولة ${result.round}',
+                        background: accent.withValues(alpha: 0.22),
+                        foreground: color,
+                      ),
+                      _ResultPill(
+                        label: attemptsLabel,
+                        background: const Color(0xFFF4F0E7),
+                        foreground: const Color(0xFF5D635F),
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 14),
                   Container(
                     width: double.infinity,
@@ -1362,14 +1789,17 @@ class _RoundResultDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 18),
-                  ElevatedButton.icon(
-                    onPressed: () => Navigator.of(context).pop(true),
-                    icon: Icon(
-                      isWin
-                          ? Icons.arrow_forward_rounded
-                          : Icons.refresh_rounded,
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.of(context).pop(true),
+                      icon: Icon(
+                        isWin
+                            ? Icons.arrow_forward_rounded
+                            : Icons.refresh_rounded,
+                      ),
+                      label: Text(isWin ? 'التالي' : 'جرب لغزاً جديداً'),
                     ),
-                    label: Text(isWin ? 'التالي' : 'جرب لغزاً جديداً'),
                   ),
                 ],
               ),
@@ -1432,6 +1862,36 @@ class _DialogBadge extends StatelessWidget {
             const Positioned(top: 18, left: 4, child: _Sparkle(size: 12)),
           ],
         ],
+      ),
+    );
+  }
+}
+
+class _ResultPill extends StatelessWidget {
+  const _ResultPill({
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
+
+  final String label;
+  final Color background;
+  final Color foreground;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          color: foreground,
+          fontWeight: FontWeight.w800,
+        ),
       ),
     );
   }
