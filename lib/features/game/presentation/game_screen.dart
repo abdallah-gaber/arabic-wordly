@@ -157,28 +157,53 @@ class _GameLayout extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final compact = MediaQuery.sizeOf(context).height < 700;
+    final size = MediaQuery.sizeOf(context);
+    final compact = size.height < 700;
+    final dense = size.width < 400 || size.height < 760;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Header(session: session, compact: compact),
-        SizedBox(height: compact ? 12 : 18),
+        _Header(session: session, compact: compact, dense: dense),
+        SizedBox(
+          height: dense
+              ? 10
+              : compact
+              ? 12
+              : 18,
+        ),
         Expanded(
           child: Card(
             child: Padding(
-              padding: EdgeInsets.all(compact ? 14 : 18),
+              padding: EdgeInsets.all(
+                dense
+                    ? 10
+                    : compact
+                    ? 14
+                    : 18,
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(
-                    child: _GuessGrid(session: session, compact: compact),
+                    child: _GuessGrid(
+                      session: session,
+                      compact: compact,
+                      dense: dense,
+                    ),
                   ),
-                  SizedBox(height: compact ? 12 : 16),
+                  SizedBox(
+                    height: dense
+                        ? 8
+                        : compact
+                        ? 12
+                        : 16,
+                  ),
                   _InputSection(
                     guessController: guessController,
                     currentLetterCount: currentLetterCount,
                     isGuessReady: isGuessReady,
+                    dense: dense,
                     onSubmitGuess: onSubmitGuess,
                     onSkipPuzzle: onSkipPuzzle,
                   ),
@@ -187,7 +212,13 @@ class _GameLayout extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(height: compact ? 10 : 14),
+        SizedBox(
+          height: dense
+              ? 8
+              : compact
+              ? 10
+              : 14,
+        ),
         _FeedbackBanner(feedback: feedback, compact: compact),
       ],
     );
@@ -195,10 +226,15 @@ class _GameLayout extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.session, required this.compact});
+  const _Header({
+    required this.session,
+    required this.compact,
+    required this.dense,
+  });
 
   final GameSession session;
   final bool compact;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -212,25 +248,50 @@ class _Header extends StatelessWidget {
           textAlign: TextAlign.center,
           style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
-            fontSize: compact ? 28 : 34,
+            fontSize: dense
+                ? 24
+                : compact
+                ? 28
+                : 34,
           ),
         ),
-        SizedBox(height: compact ? 4 : 8),
+        SizedBox(
+          height: dense
+              ? 2
+              : compact
+              ? 4
+              : 8,
+        ),
         Text(
           'لعبة كلمات عربية بسيطة تبدأ مباشرة من اللغز الحالي.',
           textAlign: TextAlign.center,
-          style: textTheme.bodyMedium?.copyWith(color: const Color(0xFF5D635F)),
+          style: (dense ? textTheme.bodySmall : textTheme.bodyMedium)?.copyWith(
+            color: const Color(0xFF5D635F),
+          ),
         ),
-        SizedBox(height: compact ? 12 : 16),
-        Wrap(
-          spacing: 12,
-          runSpacing: 8,
-          alignment: WrapAlignment.center,
+        SizedBox(
+          height: dense
+              ? 10
+              : compact
+              ? 12
+              : 16,
+        ),
+        Row(
           children: [
-            _StatCard(label: 'الجولة', value: session.round.toString()),
-            _StatCard(
-              label: 'المحاولات المتبقية',
-              value: session.attemptsRemaining.toString(),
+            Expanded(
+              child: _StatCard(
+                label: 'المحاولات المتبقية',
+                value: session.attemptsRemaining.toString(),
+                dense: dense,
+              ),
+            ),
+            SizedBox(width: dense ? 8 : 12),
+            Expanded(
+              child: _StatCard(
+                label: 'الجولة',
+                value: session.round.toString(),
+                dense: dense,
+              ),
             ),
           ],
         ),
@@ -244,6 +305,7 @@ class _InputSection extends StatelessWidget {
     required this.guessController,
     required this.currentLetterCount,
     required this.isGuessReady,
+    required this.dense,
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
   });
@@ -251,6 +313,7 @@ class _InputSection extends StatelessWidget {
   final TextEditingController guessController;
   final int currentLetterCount;
   final bool isGuessReady;
+  final bool dense;
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
 
@@ -262,7 +325,6 @@ class _InputSection extends StatelessWidget {
     final progressBackground = isGuessReady
         ? const Color(0xFFE4F2EF)
         : const Color(0xFFFCEAEA);
-    final compact = MediaQuery.sizeOf(context).height < 700;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -294,11 +356,14 @@ class _InputSection extends StatelessWidget {
               ),
               child: Center(
                 widthFactor: 1,
-                child: Text(
-                  '$currentLetterCount / ${ArabicWordRules.wordLength}',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: progressColor,
-                    fontWeight: FontWeight.w800,
+                child: Directionality(
+                  textDirection: TextDirection.ltr,
+                  child: Text(
+                    '$currentLetterCount / ${ArabicWordRules.wordLength}',
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: progressColor,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ),
@@ -306,18 +371,19 @@ class _InputSection extends StatelessWidget {
           ),
           onSubmitted: (_) => onSubmitGuess(),
         ),
-        SizedBox(height: compact ? 8 : 10),
+        SizedBox(height: dense ? 6 : 10),
         Text(
           isGuessReady
               ? 'الطول صحيح. يمكنك التحقق الآن.'
               : 'اكتب ${ArabicWordRules.wordLength} أحرف كاملة لتفعيل التحقق.',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-            color: progressColor,
-            fontWeight: FontWeight.w700,
-          ),
+          style:
+              (dense
+                      ? Theme.of(context).textTheme.bodySmall
+                      : Theme.of(context).textTheme.bodyMedium)
+                  ?.copyWith(color: progressColor, fontWeight: FontWeight.w700),
         ),
-        SizedBox(height: compact ? 10 : 12),
+        SizedBox(height: dense ? 8 : 12),
         Row(
           children: [
             Expanded(
@@ -343,18 +409,25 @@ class _InputSection extends StatelessWidget {
 }
 
 class _StatCard extends StatelessWidget {
-  const _StatCard({required this.label, required this.value});
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.dense,
+  });
 
   final String label;
   final String value;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
-      width: 164,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 12 : 16,
+        vertical: dense ? 12 : 14,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.72),
         borderRadius: BorderRadius.circular(20),
@@ -364,16 +437,20 @@ class _StatCard extends StatelessWidget {
         children: [
           Text(
             value,
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800),
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              fontSize: dense ? 26 : null,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: const Color(0xFF5D635F)),
+            textAlign: TextAlign.center,
+            style:
+                (dense
+                        ? Theme.of(context).textTheme.bodySmall
+                        : Theme.of(context).textTheme.bodyMedium)
+                    ?.copyWith(color: const Color(0xFF5D635F)),
           ),
         ],
       ),
@@ -411,54 +488,66 @@ class _FeedbackBanner extends StatelessWidget {
 }
 
 class _GuessGrid extends StatelessWidget {
-  const _GuessGrid({required this.session, required this.compact});
+  const _GuessGrid({
+    required this.session,
+    required this.compact,
+    required this.dense,
+  });
 
   final GameSession session;
   final bool compact;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final horizontalGap = compact ? 6.0 : 8.0;
-        final verticalGap = compact ? 6.0 : 10.0;
-        final tileWidth =
-            (constraints.maxWidth -
-                (horizontalGap * (ArabicWordRules.wordLength - 1))) /
-            ArabicWordRules.wordLength;
-        final tileHeight =
-            (constraints.maxHeight -
-                (verticalGap * (session.maxAttempts - 1))) /
-            session.maxAttempts;
-        final tileSize = max(28.0, min(tileWidth, tileHeight));
-        final boardWidth =
-            (tileSize * ArabicWordRules.wordLength) +
-            (horizontalGap * (ArabicWordRules.wordLength - 1));
+    final horizontalGap = dense
+        ? 4.0
+        : compact
+        ? 6.0
+        : 8.0;
+    final verticalGap = dense
+        ? 4.0
+        : compact
+        ? 6.0
+        : 10.0;
+    final tileSize = dense
+        ? 46.0
+        : compact
+        ? 54.0
+        : 62.0;
+    final boardWidth =
+        (tileSize * ArabicWordRules.wordLength) +
+        (horizontalGap * (ArabicWordRules.wordLength - 1));
+    final boardHeight =
+        (tileSize * session.maxAttempts) +
+        (verticalGap * (session.maxAttempts - 1));
 
-        return Center(
-          child: SizedBox(
-            width: boardWidth,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                for (var index = 0; index < session.maxAttempts; index++) ...[
-                  if (index > 0) SizedBox(height: verticalGap),
-                  _GuessRow(
-                    tileSize: tileSize,
-                    gap: horizontalGap,
-                    letters: index < session.guesses.length
-                        ? GuessEvaluator.evaluate(
-                            guess: session.guesses[index],
-                            answer: session.answer,
-                          ).letters
-                        : null,
-                  ),
-                ],
+    return Center(
+      child: FittedBox(
+        fit: BoxFit.contain,
+        child: SizedBox(
+          width: boardWidth,
+          height: boardHeight,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              for (var index = 0; index < session.maxAttempts; index++) ...[
+                if (index > 0) SizedBox(height: verticalGap),
+                _GuessRow(
+                  tileSize: tileSize,
+                  gap: horizontalGap,
+                  letters: index < session.guesses.length
+                      ? GuessEvaluator.evaluate(
+                          guess: session.guesses[index],
+                          answer: session.answer,
+                        ).letters
+                      : null,
+                ),
               ],
-            ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 }

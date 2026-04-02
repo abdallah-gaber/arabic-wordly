@@ -10,6 +10,22 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('GameScreen', () {
+    testWidgets('fits on a phone-sized viewport without layout overflow', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        _buildTestApp(store: _InMemoryKeyValueStore(), random: _FixedRandom(0)),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('0 / 5'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('loads directly into the current puzzle for a new user', (
       tester,
     ) async {
