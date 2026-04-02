@@ -87,11 +87,19 @@ class EvaluatedGuess {
   final List<LetterEvaluation> letters;
 }
 
+class ArabicPuzzle {
+  const ArabicPuzzle({required this.word, required this.category});
+
+  final String word;
+  final String category;
+}
+
 class GameSession {
   const GameSession({
     required this.round,
     required this.answer,
     required this.guesses,
+    this.category = '',
     this.mode = GameMode.fiveLetters,
     this.maxAttempts = ArabicWordRules.maxAttempts,
     this.revealedHintIndexes = const [],
@@ -102,6 +110,7 @@ class GameSession {
   final int round;
   final String answer;
   final List<String> guesses;
+  final String category;
   final GameMode mode;
   final int maxAttempts;
   final List<int> revealedHintIndexes;
@@ -188,6 +197,7 @@ class GameSession {
     int? round,
     String? answer,
     List<String>? guesses,
+    String? category,
     GameMode? mode,
     int? maxAttempts,
     List<int>? revealedHintIndexes,
@@ -198,6 +208,7 @@ class GameSession {
       round: round ?? this.round,
       answer: answer ?? this.answer,
       guesses: guesses ?? this.guesses,
+      category: category ?? this.category,
       mode: mode ?? this.mode,
       maxAttempts: maxAttempts ?? this.maxAttempts,
       revealedHintIndexes: revealedHintIndexes ?? this.revealedHintIndexes,
@@ -212,6 +223,7 @@ class GameSession {
       'round': round,
       'answer': answer,
       'guesses': guesses,
+      'category': category,
       'mode': mode.cacheKey,
       'maxAttempts': maxAttempts,
       'revealedHintIndexes': revealedHintIndexes,
@@ -225,6 +237,7 @@ class GameSession {
       round: json['round'] as int? ?? 1,
       answer: json['answer'] as String? ?? '',
       guesses: List<String>.from(json['guesses'] as List<dynamic>? ?? const []),
+      category: json['category'] as String? ?? '',
       mode: GameMode.fromCacheKey(json['mode'] as String? ?? '5'),
       maxAttempts: json['maxAttempts'] as int? ?? ArabicWordRules.maxAttempts,
       revealedHintIndexes: List<int>.from(

@@ -365,6 +365,41 @@ class _Header extends StatelessWidget {
             fontWeight: FontWeight.w800,
           ),
         ),
+        if (session.category.isNotEmpty) ...[
+          SizedBox(height: dense ? 8 : 10),
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              padding: EdgeInsets.symmetric(
+                horizontal: dense ? 12 : 14,
+                vertical: dense ? 6 : 8,
+              ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFEAF3F0),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: const Color(0xFFB9D7CF)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.category_outlined,
+                    size: dense ? 16 : 18,
+                    color: const Color(0xFF157A6E),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'الفئة: ${session.category}',
+                    style: textTheme.labelLarge?.copyWith(
+                      color: const Color(0xFF157A6E),
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
         const SizedBox(height: 4),
         Align(
           alignment: Alignment.center,

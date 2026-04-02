@@ -30,6 +30,15 @@ class GameLocalRepository {
       if (cachedSession != null &&
           cachedSession.mode == mode &&
           _puzzleBank.containsAnswer(mode, cachedSession.answer)) {
+        final category = _puzzleBank.categoryForAnswer(
+          mode,
+          cachedSession.answer,
+        );
+        if (category != null && cachedSession.category != category) {
+          final enrichedSession = cachedSession.copyWith(category: category);
+          await saveSession(enrichedSession);
+          return enrichedSession;
+        }
         return cachedSession;
       }
     }
@@ -51,10 +60,12 @@ class GameLocalRepository {
     String? excluding,
   }) async {
     final createdAt = _now();
+    final puzzle = _puzzleBank.pickRandom(mode, _random, excluding: excluding);
     final session = GameSession(
       mode: mode,
       round: round,
-      answer: _puzzleBank.pickRandom(mode, _random, excluding: excluding),
+      answer: puzzle.word,
+      category: puzzle.category,
       guesses: const [],
       startedAtEpochMs: createdAt.millisecondsSinceEpoch,
       nextHintAvailableAtEpochMs: createdAt.millisecondsSinceEpoch,

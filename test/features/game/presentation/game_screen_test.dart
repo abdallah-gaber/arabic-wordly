@@ -92,6 +92,7 @@ void main() {
       expect(find.text('خمنها'), findsOneWidget);
       expect(find.text('5amenha'), findsOneWidget);
       expect(find.text('الجولة'), findsOneWidget);
+      expect(find.text('الفئة: الطبيعة'), findsOneWidget);
       expect(find.text('تحقق'), findsOneWidget);
       expect(find.text('0 / 5'), findsOneWidget);
       expect(
@@ -264,10 +265,26 @@ ProviderScope _buildGameApp({
 }
 
 final _testPuzzleBank = ArabicPuzzleBank({
-  GameMode.threeLetters: ['بيت', 'باب', 'نور'],
-  GameMode.fourLetters: ['كتاب', 'قهوة', 'وردة'],
-  GameMode.fiveLetters: ['حديقة', 'مدرسة', 'مكتبة'],
-  GameMode.sixLetters: ['سيارات', 'مدارسك', 'تفاحات'],
+  GameMode.threeLetters: [
+    const ArabicPuzzle(word: 'بيت', category: 'المنزل'),
+    const ArabicPuzzle(word: 'باب', category: 'المنزل'),
+    const ArabicPuzzle(word: 'نور', category: 'الضوء'),
+  ],
+  GameMode.fourLetters: [
+    const ArabicPuzzle(word: 'كتاب', category: 'القراءة'),
+    const ArabicPuzzle(word: 'قهوة', category: 'المشروبات'),
+    const ArabicPuzzle(word: 'وردة', category: 'النباتات'),
+  ],
+  GameMode.fiveLetters: [
+    const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
+    const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
+    const ArabicPuzzle(word: 'مكتبة', category: 'القراءة'),
+  ],
+  GameMode.sixLetters: [
+    const ArabicPuzzle(word: 'سيارات', category: 'المواصلات'),
+    const ArabicPuzzle(word: 'مدارسك', category: 'التعليم'),
+    const ArabicPuzzle(word: 'تفاحات', category: 'الفواكه'),
+  ],
 });
 
 class _InMemoryKeyValueStore implements KeyValueStore {
