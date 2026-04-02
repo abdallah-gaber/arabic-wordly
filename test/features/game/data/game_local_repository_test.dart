@@ -42,6 +42,32 @@ void main() {
     });
 
     test(
+      'restores a completed cached session until the user advances',
+      () async {
+        final store = _InMemoryKeyValueStore();
+        final repository = GameLocalRepository(
+          store: store,
+          puzzleBank: ArabicPuzzleBank(['حديقة', 'مدرسة']),
+          random: _FixedRandom(1),
+        );
+
+        await repository.saveSession(
+          const GameSession(
+            round: 2,
+            answer: 'حديقة',
+            guesses: ['مدرسة', 'حديقة'],
+          ),
+        );
+
+        final session = await repository.restoreOrCreateSession();
+
+        expect(session.round, 2);
+        expect(session.answer, 'حديقة');
+        expect(session.outcome, SessionOutcome.won);
+      },
+    );
+
+    test(
       'creates a different next session when excluding the previous answer',
       () async {
         final repository = GameLocalRepository(

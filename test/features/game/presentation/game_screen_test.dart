@@ -90,7 +90,11 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق'));
       await tester.pumpAndSettle();
 
-      expect(find.text('أحسنت! بدأت جولة جديدة مباشرة.'), findsOneWidget);
+      expect(find.text('أحسنت!'), findsOneWidget);
+      expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
+      await tester.pumpAndSettle();
+
       expect(find.text('2'), findsWidgets);
     });
 
@@ -113,6 +117,35 @@ void main() {
         find.text('تم فتح لغز جديد. يمكنك المحاولة من جديد.'),
         findsOneWidget,
       );
+      expect(find.text('2'), findsWidgets);
+    });
+
+    testWidgets('shows the correct answer after a failed puzzle', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildTestApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedSequenceRandom([0, 1]),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      for (var attempt = 0; attempt < 6; attempt++) {
+        await tester.enterText(find.byType(TextField), 'مكتبة');
+        await tester.pump();
+        await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'تحقق'));
+        await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق'));
+        await tester.pumpAndSettle();
+      }
+
+      expect(find.text('انتهت المحاولات'), findsOneWidget);
+      expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'));
+      await tester.pumpAndSettle();
+
       expect(find.text('2'), findsWidgets);
     });
   });

@@ -26,7 +26,6 @@ class GameLocalRepository {
     if (cachedJson != null) {
       final cachedSession = _decodeSession(cachedJson);
       if (cachedSession != null &&
-          cachedSession.canAcceptGuess &&
           _puzzleBank.containsAnswer(cachedSession.answer)) {
         return cachedSession;
       }

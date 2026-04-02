@@ -12,10 +12,10 @@ Completed on April 2, 2026.
 - Arabic five-letter puzzle bank for offline play.
 - Guess evaluation with duplicate-letter handling.
 - Local session persistence through `shared_preferences`.
-- Automatic progression to the next puzzle after a win.
-- Automatic replacement with a new puzzle after a loss.
+- Round-end popup flow with celebration on success and correct-answer reveal on failure.
+- Next-puzzle action after win or loss instead of silent automatic progression.
 - Manual skip action for stuck players.
-- Whole-word input feedback with live letter count, disabled verify state until the required length, and a distinct final tile accent in every row.
+- Whole-word input feedback with live letter count and disabled verify state until the required length.
 - Unit and widget tests for the rule engine, cache behavior, and primary UI flow.
 
 ## Toolchain

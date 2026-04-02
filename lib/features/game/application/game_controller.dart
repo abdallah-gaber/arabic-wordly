@@ -38,7 +38,8 @@ class GameController extends AsyncNotifier<GameViewState> {
     final session = await _repository.restoreOrCreateSession();
     return GameViewState(
       session: session,
-      feedback: 'اكتب كلمة عربية من خمسة أحرف ثم تحقق من النتيجة.',
+      feedback: _feedbackForSession(session),
+      pendingResult: _pendingResultForSession(session),
     );
   }
 
@@ -63,39 +64,32 @@ class GameController extends AsyncNotifier<GameViewState> {
     _isMutating = true;
     try {
       final nextSession = current.session.addGuess(guess);
+      await _repository.saveSession(nextSession);
 
       switch (nextSession.outcome) {
         case SessionOutcome.inProgress:
-          await _repository.saveSession(nextSession);
           state = AsyncData(
             current.copyWith(
               session: nextSession,
               feedback:
                   'محاولة ${nextSession.guesses.length} من ${nextSession.maxAttempts}.',
+              clearPendingResult: true,
             ),
           );
         case SessionOutcome.won:
-          final upcomingSession = await _repository.createNextSession(
-            round: current.session.round + 1,
-            excluding: current.session.answer,
-          );
           state = AsyncData(
-            GameViewState(
-              session: upcomingSession,
-              feedback: 'أحسنت! بدأت جولة جديدة مباشرة.',
+            current.copyWith(
+              session: nextSession,
+              feedback: 'أحسنت! تم حل اللغز.',
+              pendingResult: RoundResult.fromSession(nextSession),
             ),
           );
         case SessionOutcome.lost:
-          final previousAnswer = current.session.answer;
-          final upcomingSession = await _repository.createNextSession(
-            round: current.session.round + 1,
-            excluding: current.session.answer,
-          );
           state = AsyncData(
-            GameViewState(
-              session: upcomingSession,
-              feedback:
-                  'انتهت المحاولات. كانت الكلمة "$previousAnswer". بدأ لغز جديد.',
+            current.copyWith(
+              session: nextSession,
+              feedback: 'انتهت المحاولات في هذا اللغز.',
+              pendingResult: RoundResult.fromSession(nextSession),
             ),
           );
       }
@@ -131,5 +125,47 @@ class GameController extends AsyncNotifier<GameViewState> {
     } finally {
       _isMutating = false;
     }
+  }
+
+  Future<void> continueToNextPuzzle() async {
+    if (_isMutating) {
+      return;
+    }
+
+    final current = state.asData?.value;
+    if (current == null) {
+      return;
+    }
+
+    _isMutating = true;
+    try {
+      final nextSession = await _repository.createNextSession(
+        round: current.session.round + 1,
+        excluding: current.session.answer,
+      );
+      state = AsyncData(
+        GameViewState(
+          session: nextSession,
+          feedback: 'بدأ لغز جديد. يمكنك المتابعة.',
+        ),
+      );
+    } finally {
+      _isMutating = false;
+    }
+  }
+
+  String _feedbackForSession(GameSession session) {
+    return switch (session.outcome) {
+      SessionOutcome.inProgress =>
+        'اكتب كلمة عربية من خمسة أحرف ثم تحقق من النتيجة.',
+      SessionOutcome.won => 'أحسنت! تم حل اللغز.',
+      SessionOutcome.lost => 'انتهت المحاولات في هذا اللغز.',
+    };
+  }
+
+  RoundResult? _pendingResultForSession(GameSession session) {
+    return session.outcome == SessionOutcome.inProgress
+        ? null
+        : RoundResult.fromSession(session);
   }
 }

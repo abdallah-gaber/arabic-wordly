@@ -18,6 +18,7 @@ class GameScreen extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<GameScreen> {
   late final TextEditingController _guessController;
+  bool _isResultDialogOpen = false;
 
   void _handleGuessChanged() {
     if (mounted) {
@@ -64,6 +65,46 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     await ref.read(gameControllerProvider.notifier).skipPuzzle();
   }
 
+  Future<void> _showRoundResultDialog(RoundResult result) async {
+    if (_isResultDialogOpen || !mounted) {
+      return;
+    }
+
+    _isResultDialogOpen = true;
+
+    final shouldAdvance = await showGeneralDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      barrierLabel: 'round-result',
+      barrierColor: Colors.black.withValues(alpha: 0.28),
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return _RoundResultDialog(result: result);
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curve = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOutCubic,
+        );
+        return FadeTransition(
+          opacity: curve,
+          child: ScaleTransition(
+            scale: Tween(begin: 0.92, end: 1.0).animate(curve),
+            child: child,
+          ),
+        );
+      },
+    );
+
+    _isResultDialogOpen = false;
+
+    if (!mounted || shouldAdvance != true) {
+      return;
+    }
+
+    await ref.read(gameControllerProvider.notifier).continueToNextPuzzle();
+  }
+
   int get _currentLetterCount =>
       ArabicWordRules.split(_guessController.text).length;
 
@@ -73,6 +114,15 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameControllerProvider);
+    ref.listen(gameControllerProvider, (previous, next) {
+      final previousResult = previous?.asData?.value.pendingResult;
+      final nextResult = next.asData?.value.pendingResult;
+      if (nextResult != null && !identical(previousResult, nextResult)) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _showRoundResultDialog(nextResult);
+        });
+      }
+    });
 
     return Scaffold(
       body: SafeArea(
@@ -90,7 +140,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
           data: (viewState) => LayoutBuilder(
             builder: (context, constraints) {
               final shouldScroll =
-                  constraints.maxHeight < 720 || constraints.maxWidth < 560;
+                  constraints.maxHeight < 760 || constraints.maxWidth < 560;
               final layoutHeight = shouldScroll
                   ? max(constraints.maxHeight - 36, 760.0)
                   : constraints.maxHeight - 36;
@@ -159,7 +209,7 @@ class _GameLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
     final compact = size.height < 700;
-    final dense = size.width < 400 || size.height < 760;
+    final dense = size.width < 430 || size.height < 820;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -267,6 +317,7 @@ class _Header extends StatelessWidget {
           textAlign: TextAlign.center,
           style: (dense ? textTheme.bodySmall : textTheme.bodyMedium)?.copyWith(
             color: const Color(0xFF5D635F),
+            fontSize: dense ? 11 : null,
           ),
         ),
         SizedBox(
@@ -363,6 +414,7 @@ class _InputSection extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: progressColor,
                       fontWeight: FontWeight.w800,
+                      fontSize: dense ? 13 : null,
                     ),
                   ),
                 ),
@@ -381,7 +433,11 @@ class _InputSection extends StatelessWidget {
               (dense
                       ? Theme.of(context).textTheme.bodySmall
                       : Theme.of(context).textTheme.bodyMedium)
-                  ?.copyWith(color: progressColor, fontWeight: FontWeight.w700),
+                  ?.copyWith(
+                    color: progressColor,
+                    fontWeight: FontWeight.w700,
+                    fontSize: dense ? 11 : 13,
+                  ),
         ),
         SizedBox(height: dense ? 8 : 12),
         Row(
@@ -511,7 +567,7 @@ class _GuessGrid extends StatelessWidget {
         ? 6.0
         : 10.0;
     final tileSize = dense
-        ? 46.0
+        ? 42.0
         : compact
         ? 54.0
         : 62.0;
@@ -569,7 +625,6 @@ class _GuessRow extends StatelessWidget {
           padding: EdgeInsetsDirectional.only(start: index == 0 ? 0 : gap),
           child: _GuessTile(
             size: tileSize,
-            isFinalTile: index == ArabicWordRules.wordLength - 1,
             letter: letters == null ? '' : letters![index].letter,
             match: letters == null ? null : letters![index].match,
           ),
@@ -583,13 +638,11 @@ class _GuessRow extends StatelessWidget {
 class _GuessTile extends StatelessWidget {
   const _GuessTile({
     required this.size,
-    required this.isFinalTile,
     required this.letter,
     required this.match,
   });
 
   final double size;
-  final bool isFinalTile;
   final String letter;
   final LetterMatch? match;
 
@@ -616,54 +669,188 @@ class _GuessTile extends StatelessWidget {
 
     return SizedBox.square(
       dimension: size,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: borderColor),
+        ),
+        child: Center(
+          child: Text(
+            letter,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: textColor,
+              fontSize: size * 0.38,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundResultDialog extends StatelessWidget {
+  const _RoundResultDialog({required this.result});
+
+  final RoundResult result;
+
+  @override
+  Widget build(BuildContext context) {
+    final isWin = result.type == RoundResultType.won;
+    final color = isWin ? const Color(0xFF157A6E) : const Color(0xFFC84F4F);
+    final accent = isWin ? const Color(0xFFE0A93B) : const Color(0xFFF2B3B3);
+
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
               decoration: BoxDecoration(
-                color: backgroundColor,
-                borderRadius: BorderRadius.only(
-                  topRight: const Radius.circular(16),
-                  bottomRight: const Radius.circular(16),
-                  bottomLeft: const Radius.circular(16),
-                  topLeft: Radius.circular(isFinalTile ? 24 : 16),
-                ),
-                border: Border.all(
-                  color: isFinalTile && match == null
-                      ? const Color(0xFFE0A93B)
-                      : borderColor,
-                  width: isFinalTile && match == null ? 1.6 : 1,
-                ),
-              ),
-              child: Center(
-                child: Text(
-                  letter,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: textColor,
-                    fontSize: size * 0.38,
+                color: const Color(0xFFFFFCF6),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: accent),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 24,
+                    offset: const Offset(0, 14),
                   ),
-                ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _DialogBadge(isWin: isWin, color: color, accent: accent),
+                  const SizedBox(height: 18),
+                  Text(
+                    isWin ? 'أحسنت!' : 'انتهت المحاولات',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: color,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    isWin
+                        ? 'تم حل الجولة ${result.round} خلال ${result.attemptsUsed} محاولة.'
+                        : 'لم تنجح في الجولة ${result.round} هذه المرة.',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                      color: const Color(0xFF5D635F),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: Text(
+                      'الكلمة الصحيحة: ${result.answer}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.of(context).pop(true),
+                    icon: Icon(
+                      isWin
+                          ? Icons.arrow_forward_rounded
+                          : Icons.refresh_rounded,
+                    ),
+                    label: Text(isWin ? 'التالي' : 'جرب لغزاً جديداً'),
+                  ),
+                ],
               ),
             ),
           ),
-          if (isFinalTile)
-            PositionedDirectional(
-              top: 6,
-              start: 6,
-              child: Container(
-                width: size * 0.18,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: match == null
-                      ? const Color(0xFFE0A93B)
-                      : textColor.withValues(alpha: 0.65),
-                  borderRadius: BorderRadius.circular(99),
-                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DialogBadge extends StatelessWidget {
+  const _DialogBadge({
+    required this.isWin,
+    required this.color,
+    required this.accent,
+  });
+
+  final bool isWin;
+  final Color color;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.86, end: 1),
+      duration: const Duration(milliseconds: 650),
+      curve: Curves.elasticOut,
+      builder: (context, value, child) {
+        return Transform.scale(scale: value, child: child);
+      },
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: 116,
+            height: 116,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                colors: [
+                  accent.withValues(alpha: 0.95),
+                  color.withValues(alpha: 0.94),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
               ),
             ),
+          ),
+          Icon(
+            isWin
+                ? Icons.celebration_rounded
+                : Icons.sentiment_dissatisfied_rounded,
+            color: Colors.white,
+            size: 48,
+          ),
+          if (isWin) ...[
+            const Positioned(top: 8, right: 10, child: _Sparkle(size: 20)),
+            const Positioned(bottom: 14, left: 8, child: _Sparkle(size: 16)),
+            const Positioned(top: 18, left: 4, child: _Sparkle(size: 12)),
+          ],
         ],
       ),
+    );
+  }
+}
+
+class _Sparkle extends StatelessWidget {
+  const _Sparkle({required this.size});
+
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return Icon(
+      Icons.auto_awesome_rounded,
+      size: size,
+      color: const Color(0xFFFFF4CC),
     );
   }
 }

@@ -4,6 +4,8 @@ enum LetterMatch { correct, present, absent }
 
 enum SessionOutcome { inProgress, won, lost }
 
+enum RoundResultType { won, lost }
+
 class LetterEvaluation {
   const LetterEvaluation({required this.letter, required this.match});
 
@@ -84,20 +86,55 @@ class GameSession {
   }
 }
 
+class RoundResult {
+  const RoundResult({
+    required this.type,
+    required this.answer,
+    required this.round,
+    required this.attemptsUsed,
+  });
+
+  final RoundResultType type;
+  final String answer;
+  final int round;
+  final int attemptsUsed;
+
+  factory RoundResult.fromSession(GameSession session) {
+    return RoundResult(
+      type: session.outcome == SessionOutcome.won
+          ? RoundResultType.won
+          : RoundResultType.lost,
+      answer: session.answer,
+      round: session.round,
+      attemptsUsed: session.guesses.length,
+    );
+  }
+}
+
 class GameViewState {
-  const GameViewState({required this.session, this.feedback});
+  const GameViewState({
+    required this.session,
+    this.feedback,
+    this.pendingResult,
+  });
 
   final GameSession session;
   final String? feedback;
+  final RoundResult? pendingResult;
 
   GameViewState copyWith({
     GameSession? session,
     String? feedback,
+    RoundResult? pendingResult,
     bool clearFeedback = false,
+    bool clearPendingResult = false,
   }) {
     return GameViewState(
       session: session ?? this.session,
       feedback: clearFeedback ? null : feedback ?? this.feedback,
+      pendingResult: clearPendingResult
+          ? null
+          : pendingResult ?? this.pendingResult,
     );
   }
 }
