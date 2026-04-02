@@ -4,6 +4,7 @@ import 'dart:math';
 import 'package:arabic_wordly/features/game/data/key_value_store.dart';
 import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
+import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 
 class GameLocalRepository {
   GameLocalRepository({
@@ -17,6 +18,7 @@ class GameLocalRepository {
        _now = now;
 
   static const _hasStartedKey = 'has_started';
+  static const _playerStatsKey = 'player_stats';
 
   final KeyValueStore _store;
   final ArabicPuzzleBank _puzzleBank;
@@ -52,6 +54,28 @@ class GameLocalRepository {
       _sessionKey(session.mode),
       jsonEncode(session.toJson()),
     );
+  }
+
+  Future<PlayerStats> restoreStats() async {
+    final cachedJson = await _store.getString(_playerStatsKey);
+    if (cachedJson == null) {
+      return const PlayerStats();
+    }
+
+    try {
+      final decoded = jsonDecode(cachedJson);
+      if (decoded is! Map<String, dynamic>) {
+        return const PlayerStats();
+      }
+
+      return PlayerStats.fromJson(decoded);
+    } catch (_) {
+      return const PlayerStats();
+    }
+  }
+
+  Future<void> saveStats(PlayerStats stats) async {
+    await _store.setString(_playerStatsKey, jsonEncode(stats.toJson()));
   }
 
   Future<GameSession> createNextSession({

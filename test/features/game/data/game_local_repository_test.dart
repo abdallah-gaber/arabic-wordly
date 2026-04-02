@@ -4,6 +4,7 @@ import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
 import 'package:arabic_wordly/features/game/data/key_value_store.dart';
 import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
+import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -240,6 +241,38 @@ void main() {
       );
 
       expect(session.category, 'الطبيعة');
+    });
+
+    test('stores and restores player stats', () async {
+      final repository = GameLocalRepository(
+        store: _InMemoryKeyValueStore(),
+        puzzleBank: ArabicPuzzleBank({
+          GameMode.fiveLetters: [
+            const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
+          ],
+        }),
+        random: _FixedRandom(0),
+        now: () => fixedNow,
+      );
+
+      const stats = PlayerStats(
+        totalScore: 244,
+        totalSolved: 1,
+        totalFailed: 1,
+        totalSkipped: 1,
+        currentStreak: 0,
+        bestStreak: 1,
+        totalSolveTimeSeconds: 42,
+      );
+
+      await repository.saveStats(stats);
+      final restored = await repository.restoreStats();
+
+      expect(restored.totalScore, 244);
+      expect(restored.totalSolved, 1);
+      expect(restored.totalFailed, 1);
+      expect(restored.totalSkipped, 1);
+      expect(restored.totalSolveTimeSeconds, 42);
     });
   });
 }

@@ -156,6 +156,27 @@ void main() {
       );
     });
 
+    testWidgets('strips non-Arabic characters from the guess field', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildGameApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'abحديقةxyz');
+      await tester.pump();
+
+      final field = tester.widget<TextField>(find.byType(TextField));
+      expect(field.controller?.text, 'حديقة');
+      expect(find.text('5 / 5'), findsOneWidget);
+    });
+
     testWidgets('advances to the next round when the puzzle is solved', (
       tester,
     ) async {
@@ -178,6 +199,9 @@ void main() {
 
       expect(find.text('أحسنت!'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      expect(find.text('+244 نقطة'), findsOneWidget);
+      expect(find.text('المجموع 244'), findsOneWidget);
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
 
@@ -202,7 +226,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.text('تم فتح لغز جديد. يمكنك المحاولة من جديد.'),
+        find.text('تم فتح لغز جديد. تم احتساب التخطي كخسارة في الإحصاءات.'),
         findsOneWidget,
       );
       expect(find.text('2'), findsWidgets);
@@ -233,6 +257,9 @@ void main() {
       expect(find.text('انتهت المحاولات'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
 
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'),
+      );
       await tester.tap(find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'));
       await tester.pumpAndSettle();
 
