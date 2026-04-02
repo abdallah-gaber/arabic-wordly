@@ -22,6 +22,38 @@ void main() {
       expect(find.text('Arabic Wordly'), findsOneWidget);
       expect(find.text('الجولة'), findsOneWidget);
       expect(find.text('تحقق'), findsOneWidget);
+      expect(find.text('0 / 5'), findsOneWidget);
+      expect(
+        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+        isNull,
+      );
+    });
+
+    testWidgets('enables verify only after the required number of letters', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildTestApp(store: _InMemoryKeyValueStore(), random: _FixedRandom(0)),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'حدي');
+      await tester.pump();
+
+      expect(find.text('3 / 5'), findsOneWidget);
+      expect(
+        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+        isNull,
+      );
+
+      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tester.pump();
+
+      expect(find.text('5 / 5'), findsOneWidget);
+      expect(
+        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+        isNotNull,
+      );
     });
 
     testWidgets('advances to the next round when the puzzle is solved', (
@@ -37,8 +69,9 @@ void main() {
       await tester.pumpAndSettle();
 
       await tester.enterText(find.byType(TextField), 'حديقة');
-      await tester.ensureVisible(find.text('تحقق'));
-      await tester.tap(find.text('تحقق'));
+      await tester.pump();
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'تحقق'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق'));
       await tester.pumpAndSettle();
 
       expect(find.text('أحسنت! بدأت جولة جديدة مباشرة.'), findsOneWidget);

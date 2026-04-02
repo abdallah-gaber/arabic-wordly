@@ -8,12 +8,14 @@ Completed on April 2, 2026.
 
 - Flutter project scaffolded for Android, iOS, and web.
 - Minimal RTL game interface that opens directly into the active puzzle.
+- Responsive layout refinement so the board stays visible more naturally on full-screen desktop and mobile views.
 - Arabic five-letter puzzle bank for offline play.
 - Guess evaluation with duplicate-letter handling.
 - Local session persistence through `shared_preferences`.
 - Automatic progression to the next puzzle after a win.
 - Automatic replacement with a new puzzle after a loss.
 - Manual skip action for stuck players.
+- Whole-word input feedback with live letter count, disabled verify state until the required length, and a distinct final tile accent in every row.
 - Unit and widget tests for the rule engine, cache behavior, and primary UI flow.
 
 ## Toolchain

@@ -11,6 +11,10 @@
 
 ## Phase 2: Content Expansion
 
+- Add four playable word-length modes: 3, 4, 5, and 6 letters.
+- Curate at least 500 Arabic words for each mode.
+- Add a mode selector and keep cached progress per mode.
+- Add a score system and cool solve celebration animation.
 - Expand and curate the Arabic word list.
 - Add difficulty balancing and better puzzle rotation.
 - Improve keyboard ergonomics for Arabic input.
