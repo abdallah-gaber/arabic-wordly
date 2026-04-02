@@ -10,15 +10,18 @@ class GameLocalRepository {
     required KeyValueStore store,
     required ArabicPuzzleBank puzzleBank,
     required Random random,
+    required DateTime Function() now,
   }) : _store = store,
        _puzzleBank = puzzleBank,
-       _random = random;
+       _random = random,
+       _now = now;
 
   static const _hasStartedKey = 'has_started';
 
   final KeyValueStore _store;
   final ArabicPuzzleBank _puzzleBank;
   final Random _random;
+  final DateTime Function() _now;
 
   Future<GameSession> restoreOrCreateSession(GameMode mode) async {
     final cachedJson = await _store.getString(_sessionKey(mode));
@@ -47,11 +50,14 @@ class GameLocalRepository {
     required int round,
     String? excluding,
   }) async {
+    final createdAt = _now();
     final session = GameSession(
       mode: mode,
       round: round,
       answer: _puzzleBank.pickRandom(mode, _random, excluding: excluding),
       guesses: const [],
+      startedAtEpochMs: createdAt.millisecondsSinceEpoch,
+      nextHintAvailableAtEpochMs: createdAt.millisecondsSinceEpoch,
     );
 
     await saveSession(session);

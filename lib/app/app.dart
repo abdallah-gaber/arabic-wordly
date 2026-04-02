@@ -1,3 +1,4 @@
+import 'package:arabic_wordly/app/app_branding.dart';
 import 'package:arabic_wordly/app/theme/app_theme.dart';
 import 'package:arabic_wordly/features/game/presentation/mode_selection_screen.dart';
 import 'package:flutter/material.dart';
@@ -9,7 +10,7 @@ class ArabicWordlyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Arabic Wordly',
+      title: appNameEnglish,
       theme: AppTheme.light(),
       builder: (context, child) {
         return Directionality(

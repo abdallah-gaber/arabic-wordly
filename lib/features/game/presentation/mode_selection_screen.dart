@@ -1,3 +1,4 @@
+import 'package:arabic_wordly/app/app_branding.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,24 @@ class ModeSelectionScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
+                          Text(
+                            appNameArabic,
+                            textAlign: TextAlign.center,
+                            style: textTheme.headlineMedium?.copyWith(
+                              fontWeight: FontWeight.w900,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            appNameEnglish,
+                            textAlign: TextAlign.center,
+                            style: textTheme.titleMedium?.copyWith(
+                              color: const Color(0xFF157A6E),
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
                           Text(
                             'اختر وضع اللعب',
                             textAlign: TextAlign.center,

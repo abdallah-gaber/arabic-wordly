@@ -1,11 +1,11 @@
 {
-    "name": "arabic_wordly",
-    "short_name": "arabic_wordly",
+    "name": "5amenha",
+    "short_name": "خمنها",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#157A6E",
     "theme_color": "#157A6E",
-    "description": "A new Flutter project.",
+    "description": "Arabic word puzzle play with hints, progress restore, and multiple word lengths.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

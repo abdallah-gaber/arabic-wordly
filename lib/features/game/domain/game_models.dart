@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 
 enum LetterMatch { correct, present, absent }
@@ -5,6 +7,34 @@ enum LetterMatch { correct, present, absent }
 enum SessionOutcome { inProgress, won, lost }
 
 enum RoundResultType { won, lost }
+
+class HintRules {
+  const HintRules._();
+
+  static const List<Duration> _cooldownsAfterUse = [
+    Duration(minutes: 1),
+    Duration(minutes: 5),
+    Duration(minutes: 10),
+    Duration(minutes: 15),
+  ];
+
+  static int maxHintsForWordLength(int wordLength) {
+    return math.max(1, wordLength - 1);
+  }
+
+  static Duration cooldownAfterUse(int usedHintsCount) {
+    final index = usedHintsCount - 1;
+    if (index < 0) {
+      return Duration.zero;
+    }
+
+    if (index >= _cooldownsAfterUse.length) {
+      return _cooldownsAfterUse.last;
+    }
+
+    return _cooldownsAfterUse[index];
+  }
+}
 
 enum GameMode {
   threeLetters,
@@ -64,6 +94,9 @@ class GameSession {
     required this.guesses,
     this.mode = GameMode.fiveLetters,
     this.maxAttempts = ArabicWordRules.maxAttempts,
+    this.revealedHintIndexes = const [],
+    this.startedAtEpochMs = 0,
+    this.nextHintAvailableAtEpochMs = 0,
   });
 
   final int round;
@@ -71,12 +104,46 @@ class GameSession {
   final List<String> guesses;
   final GameMode mode;
   final int maxAttempts;
+  final List<int> revealedHintIndexes;
+  final int startedAtEpochMs;
+  final int nextHintAvailableAtEpochMs;
 
   int get wordLength => mode.wordLength;
+  int get maxHints => HintRules.maxHintsForWordLength(wordLength);
 
   int get attemptsRemaining => maxAttempts - guesses.length;
+  bool get hasHintsRemaining => revealedHintIndexes.length < maxHints;
 
   bool get canAcceptGuess => outcome == SessionOutcome.inProgress;
+
+  bool canUseHint(DateTime now) {
+    return outcome == SessionOutcome.inProgress &&
+        hasHintsRemaining &&
+        now.millisecondsSinceEpoch >= nextHintAvailableAtEpochMs;
+  }
+
+  Duration remainingHintWait(DateTime now) {
+    if (!hasHintsRemaining) {
+      return Duration.zero;
+    }
+
+    final difference = nextHintAvailableAtEpochMs - now.millisecondsSinceEpoch;
+    if (difference <= 0) {
+      return Duration.zero;
+    }
+
+    return Duration(milliseconds: difference);
+  }
+
+  List<String?> get revealedHintLetters {
+    final answerLetters = ArabicWordRules.split(answer);
+    return List<String?>.generate(
+      answerLetters.length,
+      (index) =>
+          revealedHintIndexes.contains(index) ? answerLetters[index] : null,
+      growable: false,
+    );
+  }
 
   SessionOutcome get outcome {
     if (guesses.contains(answer)) {
@@ -94,12 +161,33 @@ class GameSession {
     return copyWith(guesses: [...guesses, guess]);
   }
 
+  GameSession useNextHint(DateTime now) {
+    if (!canUseHint(now)) {
+      throw StateError('Hint is not available for this session.');
+    }
+
+    final nextHintIndex = Iterable<int>.generate(
+      wordLength,
+    ).firstWhere((index) => !revealedHintIndexes.contains(index));
+    final usedHintsCount = revealedHintIndexes.length + 1;
+
+    return copyWith(
+      revealedHintIndexes: [...revealedHintIndexes, nextHintIndex],
+      nextHintAvailableAtEpochMs:
+          now.millisecondsSinceEpoch +
+          HintRules.cooldownAfterUse(usedHintsCount).inMilliseconds,
+    );
+  }
+
   GameSession copyWith({
     int? round,
     String? answer,
     List<String>? guesses,
     GameMode? mode,
     int? maxAttempts,
+    List<int>? revealedHintIndexes,
+    int? startedAtEpochMs,
+    int? nextHintAvailableAtEpochMs,
   }) {
     return GameSession(
       round: round ?? this.round,
@@ -107,6 +195,10 @@ class GameSession {
       guesses: guesses ?? this.guesses,
       mode: mode ?? this.mode,
       maxAttempts: maxAttempts ?? this.maxAttempts,
+      revealedHintIndexes: revealedHintIndexes ?? this.revealedHintIndexes,
+      startedAtEpochMs: startedAtEpochMs ?? this.startedAtEpochMs,
+      nextHintAvailableAtEpochMs:
+          nextHintAvailableAtEpochMs ?? this.nextHintAvailableAtEpochMs,
     );
   }
 
@@ -117,6 +209,9 @@ class GameSession {
       'guesses': guesses,
       'mode': mode.cacheKey,
       'maxAttempts': maxAttempts,
+      'revealedHintIndexes': revealedHintIndexes,
+      'startedAtEpochMs': startedAtEpochMs,
+      'nextHintAvailableAtEpochMs': nextHintAvailableAtEpochMs,
     };
   }
 
@@ -127,6 +222,12 @@ class GameSession {
       guesses: List<String>.from(json['guesses'] as List<dynamic>? ?? const []),
       mode: GameMode.fromCacheKey(json['mode'] as String? ?? '5'),
       maxAttempts: json['maxAttempts'] as int? ?? ArabicWordRules.maxAttempts,
+      revealedHintIndexes: List<int>.from(
+        json['revealedHintIndexes'] as List<dynamic>? ?? const [],
+      ),
+      startedAtEpochMs: json['startedAtEpochMs'] as int? ?? 0,
+      nextHintAvailableAtEpochMs:
+          json['nextHintAvailableAtEpochMs'] as int? ?? 0,
     );
   }
 }

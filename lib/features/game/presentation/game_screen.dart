@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'dart:math';
 
+import 'package:arabic_wordly/app/app_branding.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
@@ -31,6 +33,7 @@ class _GameScreenView extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<_GameScreenView> {
   late final TextEditingController _guessController;
+  late final Timer _hintTimer;
   bool _isResultDialogOpen = false;
 
   void _handleGuessChanged() {
@@ -44,12 +47,18 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     super.initState();
     _guessController = TextEditingController();
     _guessController.addListener(_handleGuessChanged);
+    _hintTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
   }
 
   @override
   void dispose() {
     _guessController.removeListener(_handleGuessChanged);
     _guessController.dispose();
+    _hintTimer.cancel();
     super.dispose();
   }
 
@@ -76,6 +85,11 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     FocusScope.of(context).unfocus();
     _guessController.clear();
     await ref.read(gameControllerProvider(widget.mode).notifier).skipPuzzle();
+  }
+
+  Future<void> _useHint() async {
+    FocusScope.of(context).unfocus();
+    await ref.read(gameControllerProvider(widget.mode).notifier).useHint();
   }
 
   Future<void> _showRoundResultDialog(RoundResult result) async {
@@ -131,6 +145,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameControllerProvider(widget.mode));
+    final now = ref.read(clockProvider)();
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
@@ -177,8 +192,10 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                         currentLetterCount: _currentLetterCount,
                         isGuessReady: _isGuessReady,
                         mode: widget.mode,
+                        now: now,
                         onSubmitGuess: _submitGuess,
                         onSkipPuzzle: _skipPuzzle,
+                        onUseHint: _useHint,
                       ),
                     ),
                   ),
@@ -212,8 +229,10 @@ class _GameLayout extends StatelessWidget {
     required this.currentLetterCount,
     required this.isGuessReady,
     required this.mode,
+    required this.now,
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
+    required this.onUseHint,
   });
 
   final GameSession session;
@@ -222,8 +241,10 @@ class _GameLayout extends StatelessWidget {
   final int currentLetterCount;
   final bool isGuessReady;
   final GameMode mode;
+  final DateTime now;
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
+  final Future<void> Function() onUseHint;
 
   @override
   Widget build(BuildContext context) {
@@ -274,9 +295,12 @@ class _GameLayout extends StatelessWidget {
                     currentLetterCount: currentLetterCount,
                     isGuessReady: isGuessReady,
                     dense: dense,
+                    session: session,
                     mode: session.mode,
+                    now: now,
                     onSubmitGuess: onSubmitGuess,
                     onSkipPuzzle: onSkipPuzzle,
+                    onUseHint: onUseHint,
                   ),
                 ],
               ),
@@ -315,7 +339,7 @@ class _Header extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          'Arabic Wordly',
+          appNameArabic,
           textAlign: TextAlign.center,
           style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
@@ -334,7 +358,17 @@ class _Header extends StatelessWidget {
               : 8,
         ),
         Text(
-          'لعبة كلمات عربية بسيطة تبدأ مباشرة من اللغز الحالي.',
+          appNameEnglish,
+          textAlign: TextAlign.center,
+          style: textTheme.titleMedium?.copyWith(
+            color: const Color(0xFF157A6E),
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.4,
+          ),
+        ),
+        SizedBox(height: dense ? 4 : 6),
+        Text(
+          appTaglineArabic,
           textAlign: TextAlign.center,
           style: (dense ? textTheme.bodySmall : textTheme.bodyMedium)?.copyWith(
             color: const Color(0xFF5D635F),
@@ -396,18 +430,24 @@ class _InputSection extends StatelessWidget {
     required this.currentLetterCount,
     required this.isGuessReady,
     required this.dense,
+    required this.session,
     required this.mode,
+    required this.now,
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
+    required this.onUseHint,
   });
 
   final TextEditingController guessController;
   final int currentLetterCount;
   final bool isGuessReady;
   final bool dense;
+  final GameSession session;
   final GameMode mode;
+  final DateTime now;
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
+  final Future<void> Function() onUseHint;
 
   @override
   Widget build(BuildContext context) {
@@ -417,6 +457,9 @@ class _InputSection extends StatelessWidget {
     final progressBackground = isGuessReady
         ? const Color(0xFFE4F2EF)
         : const Color(0xFFFCEAEA);
+    final canUseHint = session.canUseHint(now);
+    final hintWait = session.remainingHintWait(now);
+    final hintLetters = session.revealedHintLetters;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -481,6 +524,18 @@ class _InputSection extends StatelessWidget {
                   ),
         ),
         SizedBox(height: dense ? 8 : 12),
+        _HintPanel(
+          dense: dense,
+          canUseHint: canUseHint,
+          hasHintsRemaining: session.hasHintsRemaining,
+          hintLetters: hintLetters,
+          maxHints: session.maxHints,
+          mode: mode,
+          nextHintWait: hintWait,
+          revealedHintCount: session.revealedHintIndexes.length,
+          onUseHint: onUseHint,
+        ),
+        SizedBox(height: dense ? 8 : 12),
         Row(
           children: [
             Expanded(
@@ -501,6 +556,175 @@ class _InputSection extends StatelessWidget {
           ],
         ),
       ],
+    );
+  }
+}
+
+class _HintPanel extends StatelessWidget {
+  const _HintPanel({
+    required this.dense,
+    required this.canUseHint,
+    required this.hasHintsRemaining,
+    required this.hintLetters,
+    required this.maxHints,
+    required this.mode,
+    required this.nextHintWait,
+    required this.revealedHintCount,
+    required this.onUseHint,
+  });
+
+  final bool dense;
+  final bool canUseHint;
+  final bool hasHintsRemaining;
+  final List<String?> hintLetters;
+  final int maxHints;
+  final GameMode mode;
+  final Duration nextHintWait;
+  final int revealedHintCount;
+  final Future<void> Function() onUseHint;
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = switch ((canUseHint, hasHintsRemaining)) {
+      (true, _) => 'التلميح التالي جاهز الآن.',
+      (false, true) => 'التلميح التالي بعد ${_formatHintWait(nextHintWait)}.',
+      (false, false) => 'اكتملت كل التلميحات المتاحة لهذا اللغز.',
+    };
+
+    return Container(
+      padding: EdgeInsets.all(dense ? 12 : 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFD9D2C6)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.lightbulb_outline_rounded,
+                color: canUseHint
+                    ? const Color(0xFFE0A93B)
+                    : const Color(0xFF8E9B95),
+                size: dense ? 18 : 20,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'التلميحات',
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              Text(
+                '$revealedHintCount / $maxHints',
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: const Color(0xFF5D635F),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: dense ? 8 : 10),
+          Wrap(
+            spacing: dense ? 6 : 8,
+            runSpacing: dense ? 6 : 8,
+            children: List<Widget>.generate(
+              mode.wordLength,
+              (index) => _HintTile(
+                dense: dense,
+                index: index,
+                letter: hintLetters[index],
+              ),
+              growable: false,
+            ),
+          ),
+          SizedBox(height: dense ? 8 : 10),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style:
+                (dense
+                        ? Theme.of(context).textTheme.bodySmall
+                        : Theme.of(context).textTheme.bodyMedium)
+                    ?.copyWith(
+                      color: canUseHint
+                          ? const Color(0xFF157A6E)
+                          : const Color(0xFF5D635F),
+                      fontWeight: FontWeight.w700,
+                    ),
+          ),
+          SizedBox(height: dense ? 8 : 10),
+          FilledButton.tonalIcon(
+            onPressed: canUseHint ? onUseHint : null,
+            icon: const Icon(Icons.tips_and_updates_outlined),
+            label: Text(
+              hasHintsRemaining ? 'استخدم تلميحاً' : 'لا توجد تلميحات إضافية',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatHintWait(Duration duration) {
+    final totalSeconds = duration.inSeconds;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+}
+
+class _HintTile extends StatelessWidget {
+  const _HintTile({
+    required this.dense,
+    required this.index,
+    required this.letter,
+  });
+
+  final bool dense;
+  final int index;
+  final String? letter;
+
+  @override
+  Widget build(BuildContext context) {
+    final revealed = letter != null;
+
+    return Container(
+      width: dense ? 54 : 60,
+      padding: EdgeInsets.symmetric(vertical: dense ? 8 : 10),
+      decoration: BoxDecoration(
+        color: revealed ? const Color(0xFFEAF3F0) : Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: revealed ? const Color(0xFF157A6E) : const Color(0xFFD9D2C6),
+        ),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '${index + 1}',
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+              color: const Color(0xFF5D635F),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            letter ?? '؟',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              color: revealed
+                  ? const Color(0xFF157A6E)
+                  : const Color(0xFF8E9B95),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
