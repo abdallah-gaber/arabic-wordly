@@ -11,6 +11,7 @@ Expand Arabic Wordly from a stable five-letter MVP into a richer game system wit
 - Add a mode selector while preserving cached progress per mode.
 - Add a visible player score system.
 - Add a celebration animation when a puzzle is solved.
+- Add a timed hint system that can later be replaced or extended by rewarded ad unlocks.
 - Add richer keyboard ergonomics, including a better on-screen Arabic keyboard direction for web and mobile.
 
 ## Delivery Notes

@@ -11,6 +11,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  final clock = _MutableClock(DateTime(2026, 4, 2, 8));
+
   group('GameScreen', () {
     testWidgets('opens first to mode selection', (tester) async {
       await tester.pumpWidget(
@@ -19,6 +21,7 @@ void main() {
             keyValueStoreProvider.overrideWithValue(_InMemoryKeyValueStore()),
             randomProvider.overrideWithValue(_FixedRandom(0)),
             puzzleBankProvider.overrideWithValue(_testPuzzleBank),
+            clockProvider.overrideWithValue(clock.call),
           ],
           child: const ArabicWordlyApp(),
         ),
@@ -44,6 +47,7 @@ void main() {
           store: _InMemoryKeyValueStore(),
           random: _FixedRandom(0),
           mode: GameMode.fiveLetters,
+          clock: clock.call,
         ),
       );
 
@@ -61,6 +65,7 @@ void main() {
           store: _InMemoryKeyValueStore(),
           random: _FixedRandom(0),
           mode: GameMode.threeLetters,
+          clock: clock.call,
         ),
       );
 
@@ -78,13 +83,16 @@ void main() {
           store: _InMemoryKeyValueStore(),
           random: _FixedRandom(0),
           mode: GameMode.fiveLetters,
+          clock: clock.call,
         ),
       );
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Arabic Wordly'), findsOneWidget);
+      expect(find.text('خمنها'), findsOneWidget);
+      expect(find.text('5amenha'), findsOneWidget);
       expect(find.text('الجولة'), findsOneWidget);
+      expect(find.text('الفئة: الطبيعة'), findsOneWidget);
       expect(find.text('تحقق'), findsOneWidget);
       expect(find.text('0 / 5'), findsOneWidget);
       expect(
@@ -101,6 +109,7 @@ void main() {
           store: _InMemoryKeyValueStore(),
           random: _FixedRandom(0),
           mode: GameMode.fiveLetters,
+          clock: clock.call,
         ),
       );
 
@@ -132,6 +141,7 @@ void main() {
           store: _InMemoryKeyValueStore(),
           random: _FixedSequenceRandom([0, 1]),
           mode: GameMode.fiveLetters,
+          clock: clock.call,
         ),
       );
 
@@ -159,6 +169,7 @@ void main() {
           store: _InMemoryKeyValueStore(),
           random: _FixedSequenceRandom([0, 1]),
           mode: GameMode.fiveLetters,
+          clock: clock.call,
         ),
       );
 
@@ -182,6 +193,7 @@ void main() {
           store: _InMemoryKeyValueStore(),
           random: _FixedSequenceRandom([0, 1]),
           mode: GameMode.fiveLetters,
+          clock: clock.call,
         ),
       );
 
@@ -203,6 +215,35 @@ void main() {
 
       expect(find.text('2'), findsWidgets);
     });
+
+    testWidgets('reveals a hint immediately and starts the next countdown', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildGameApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('التلميح التالي جاهز الآن.'), findsOneWidget);
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'استخدم تلميحاً'),
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'استخدم تلميحاً'));
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('تم كشف الحرف رقم 1'), findsOneWidget);
+      expect(find.textContaining('التلميح التالي بعد 01:'), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+    });
   });
 }
 
@@ -210,22 +251,40 @@ ProviderScope _buildGameApp({
   required KeyValueStore store,
   required Random random,
   required GameMode mode,
+  required Clock clock,
 }) {
   return ProviderScope(
     overrides: [
       keyValueStoreProvider.overrideWithValue(store),
       randomProvider.overrideWithValue(random),
       puzzleBankProvider.overrideWithValue(_testPuzzleBank),
+      clockProvider.overrideWithValue(clock),
     ],
     child: MaterialApp(home: GameScreen(mode: mode)),
   );
 }
 
 final _testPuzzleBank = ArabicPuzzleBank({
-  GameMode.threeLetters: ['بيت', 'باب', 'نور'],
-  GameMode.fourLetters: ['كتاب', 'قهوة', 'وردة'],
-  GameMode.fiveLetters: ['حديقة', 'مدرسة', 'مكتبة'],
-  GameMode.sixLetters: ['سيارات', 'مدارسك', 'تفاحات'],
+  GameMode.threeLetters: [
+    const ArabicPuzzle(word: 'بيت', category: 'المنزل'),
+    const ArabicPuzzle(word: 'باب', category: 'المنزل'),
+    const ArabicPuzzle(word: 'نور', category: 'الضوء'),
+  ],
+  GameMode.fourLetters: [
+    const ArabicPuzzle(word: 'كتاب', category: 'القراءة'),
+    const ArabicPuzzle(word: 'قهوة', category: 'المشروبات'),
+    const ArabicPuzzle(word: 'وردة', category: 'النباتات'),
+  ],
+  GameMode.fiveLetters: [
+    const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
+    const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
+    const ArabicPuzzle(word: 'مكتبة', category: 'القراءة'),
+  ],
+  GameMode.sixLetters: [
+    const ArabicPuzzle(word: 'سيارات', category: 'المواصلات'),
+    const ArabicPuzzle(word: 'مدارسك', category: 'التعليم'),
+    const ArabicPuzzle(word: 'تفاحات', category: 'الفواكه'),
+  ],
 });
 
 class _InMemoryKeyValueStore implements KeyValueStore {
@@ -284,5 +343,17 @@ class _FixedSequenceRandom implements Random {
     final value = _values[_index % _values.length] % max;
     _index += 1;
     return value;
+  }
+}
+
+class _MutableClock {
+  _MutableClock(this._now);
+
+  DateTime _now;
+
+  DateTime call() => _now;
+
+  void set(DateTime value) {
+    _now = value;
   }
 }

@@ -1,169 +1,101 @@
 import 'dart:math';
 
+import 'package:arabic_wordly/features/game/data/default_puzzles.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 
 class ArabicPuzzleBank {
-  ArabicPuzzleBank(Map<GameMode, List<String>> wordsByMode)
-    : _wordsByMode = Map<GameMode, List<String>>.unmodifiable({
-        for (final entry in wordsByMode.entries)
-          entry.key: List<String>.unmodifiable(
-            entry.value
-                .map(ArabicWordRules.normalize)
-                .where(
-                  (word) => ArabicWordRules.isValidGuessFormat(
-                    word,
-                    wordLength: entry.key.wordLength,
-                  ),
-                )
-                .toSet()
-                .toList(growable: false),
+  ArabicPuzzleBank(Map<GameMode, List<dynamic>> puzzlesByMode)
+    : _puzzlesByMode = Map<GameMode, List<ArabicPuzzle>>.unmodifiable({
+        for (final entry in puzzlesByMode.entries)
+          entry.key: List<ArabicPuzzle>.unmodifiable(
+            _normalizePuzzles(entry.key, entry.value),
           ),
       });
 
-  ArabicPuzzleBank.defaults() : this(_defaultWordsByMode);
+  ArabicPuzzleBank.defaults() : this(_defaultPuzzlesByMode);
 
-  final Map<GameMode, List<String>> _wordsByMode;
+  final Map<GameMode, List<ArabicPuzzle>> _puzzlesByMode;
 
-  static const Map<GameMode, List<String>> _defaultWordsByMode = {
-    GameMode.threeLetters: [
-      'بيت',
-      'باب',
-      'ورد',
-      'قلم',
-      'بحر',
-      'نهر',
-      'ليل',
-      'نور',
-      'فجر',
-      'شمس',
-      'قمر',
-      'صوت',
-      'خبز',
-      'ماء',
-      'لون',
-      'عين',
-      'وجه',
-      'درب',
-      'نجم',
-      'ريح',
-    ],
-    GameMode.fourLetters: [
-      'كتاب',
-      'قهوة',
-      'وردة',
-      'هاتف',
-      'صباح',
-      'مساء',
-      'شتاء',
-      'صديق',
-      'طائر',
-      'حليب',
-      'سرير',
-      'مطره',
-      'حدود',
-      'دفتر',
-      'كوثر',
-      'رصيف',
-      'رغيف',
-      'شروق',
-      'كنوز',
-      'موجة',
-    ],
-    GameMode.fiveLetters: [
-      'مدرسة',
-      'حديقة',
-      'مكتبة',
-      'مدينة',
-      'مزرعة',
-      'فستان',
-      'نوافذ',
-      'سفينة',
-      'حيوان',
-      'وسادة',
-      'ميدان',
-      'بستان',
-      'اقلام',
-      'كنيسة',
-      'حديثة',
-      'تفاحة',
-      'سيارة',
-      'ملاعب',
-      'فراشة',
-      'جريدة',
-      'حقيبة',
-      'غزالة',
-      'خزانة',
-      'جامعة',
-      'تجارة',
-      'حدائق',
-      'دجاجة',
-      'هواتف',
-      'مكاتب',
-      'مسافة',
-      'وظيفة',
-      'رياضة',
-      'فواكه',
-      'دوائر',
-      'عائلة',
-      'طباعة',
-      'ابواب',
-      'انهار',
-      'بحيرة',
-      'حافلة',
-      'منازل',
-      'حجارة',
-      'طماطم',
-      'بوابة',
-      'عناية',
-      'مرايا',
-      'الوان',
-      'احلام',
-      'العاب',
-      'اوراق',
-      'اشراق',
-    ],
-    GameMode.sixLetters: [
-      'سيارات',
-      'مدارسك',
-      'قناديل',
-      'تفاحات',
-      'فراشات',
-      'جامعات',
-      'حافلات',
-      'خيارات',
-      'بوابات',
-      'شوارعك',
-      'رسائلك',
-      'عصافير',
-      'مزارعك',
-      'مجلاتك',
-      'وظائفك',
-      'دراجات',
-      'سفائنك',
-      'حدائقك',
-      'الوانك',
-      'اوراقك',
-      'نخيلنا',
-    ],
-  };
+  static final Map<GameMode, List<ArabicPuzzle>> _defaultPuzzlesByMode =
+      buildDefaultPuzzles();
 
-  List<String> wordsForMode(GameMode mode) => _wordsByMode[mode] ?? const [];
+  List<ArabicPuzzle> puzzlesForMode(GameMode mode) =>
+      _puzzlesByMode[mode] ?? const [];
 
-  bool containsAnswer(GameMode mode, String answer) {
-    return wordsForMode(mode).contains(ArabicWordRules.normalize(answer));
+  List<String> wordsForMode(GameMode mode) {
+    return puzzlesForMode(
+      mode,
+    ).map((puzzle) => puzzle.word).toList(growable: false);
   }
 
-  String pickRandom(GameMode mode, Random random, {String? excluding}) {
+  bool containsAnswer(GameMode mode, String answer) {
+    final normalizedAnswer = ArabicWordRules.normalize(answer);
+    return puzzlesForMode(
+      mode,
+    ).any((puzzle) => puzzle.word == normalizedAnswer);
+  }
+
+  ArabicPuzzle? puzzleForAnswer(GameMode mode, String answer) {
+    final normalizedAnswer = ArabicWordRules.normalize(answer);
+    for (final puzzle in puzzlesForMode(mode)) {
+      if (puzzle.word == normalizedAnswer) {
+        return puzzle;
+      }
+    }
+    return null;
+  }
+
+  String? categoryForAnswer(GameMode mode, String answer) {
+    return puzzleForAnswer(mode, answer)?.category;
+  }
+
+  ArabicPuzzle pickRandom(GameMode mode, Random random, {String? excluding}) {
     final normalizedExcluding = excluding == null
         ? null
         : ArabicWordRules.normalize(excluding);
-    final words = wordsForMode(mode);
+    final puzzles = puzzlesForMode(mode);
 
-    final candidates = words.length > 1 && normalizedExcluding != null
-        ? words.where((word) => word != normalizedExcluding).toList()
-        : words;
+    final candidates = puzzles.length > 1 && normalizedExcluding != null
+        ? puzzles.where((puzzle) => puzzle.word != normalizedExcluding).toList()
+        : puzzles;
 
     return candidates[random.nextInt(candidates.length)];
+  }
+
+  static List<ArabicPuzzle> _normalizePuzzles(
+    GameMode mode,
+    List<dynamic> entries,
+  ) {
+    final uniqueByWord = <String, ArabicPuzzle>{};
+
+    for (final entry in entries) {
+      final puzzle = switch (entry) {
+        ArabicPuzzle puzzle => puzzle,
+        String word => ArabicPuzzle(word: word, category: 'كلمات عامة'),
+        _ => null,
+      };
+
+      if (puzzle == null) {
+        continue;
+      }
+
+      final normalizedWord = ArabicWordRules.normalize(puzzle.word);
+      if (!ArabicWordRules.isValidGuessFormat(
+        normalizedWord,
+        wordLength: mode.wordLength,
+      )) {
+        continue;
+      }
+
+      uniqueByWord[normalizedWord] = ArabicPuzzle(
+        word: normalizedWord,
+        category: puzzle.category.trim().isEmpty
+            ? 'كلمات عامة'
+            : puzzle.category,
+      );
+    }
+
+    return uniqueByWord.values.toList(growable: false);
   }
 }

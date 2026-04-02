@@ -10,15 +10,18 @@ class GameLocalRepository {
     required KeyValueStore store,
     required ArabicPuzzleBank puzzleBank,
     required Random random,
+    required DateTime Function() now,
   }) : _store = store,
        _puzzleBank = puzzleBank,
-       _random = random;
+       _random = random,
+       _now = now;
 
   static const _hasStartedKey = 'has_started';
 
   final KeyValueStore _store;
   final ArabicPuzzleBank _puzzleBank;
   final Random _random;
+  final DateTime Function() _now;
 
   Future<GameSession> restoreOrCreateSession(GameMode mode) async {
     final cachedJson = await _store.getString(_sessionKey(mode));
@@ -27,6 +30,15 @@ class GameLocalRepository {
       if (cachedSession != null &&
           cachedSession.mode == mode &&
           _puzzleBank.containsAnswer(mode, cachedSession.answer)) {
+        final category = _puzzleBank.categoryForAnswer(
+          mode,
+          cachedSession.answer,
+        );
+        if (category != null && cachedSession.category != category) {
+          final enrichedSession = cachedSession.copyWith(category: category);
+          await saveSession(enrichedSession);
+          return enrichedSession;
+        }
         return cachedSession;
       }
     }
@@ -47,11 +59,16 @@ class GameLocalRepository {
     required int round,
     String? excluding,
   }) async {
+    final createdAt = _now();
+    final puzzle = _puzzleBank.pickRandom(mode, _random, excluding: excluding);
     final session = GameSession(
       mode: mode,
       round: round,
-      answer: _puzzleBank.pickRandom(mode, _random, excluding: excluding),
+      answer: puzzle.word,
+      category: puzzle.category,
       guesses: const [],
+      startedAtEpochMs: createdAt.millisecondsSinceEpoch,
+      nextHintAvailableAtEpochMs: createdAt.millisecondsSinceEpoch,
     );
 
     await saveSession(session);

@@ -5,13 +5,17 @@ import 'package:arabic_wordly/features/game/data/key_value_store.dart';
 import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
+import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+typedef Clock = DateTime Function();
 
 final keyValueStoreProvider = Provider<KeyValueStore>(
   (ref) => throw UnimplementedError('Override keyValueStoreProvider in main.'),
 );
 
 final randomProvider = Provider<Random>((ref) => Random());
+final clockProvider = Provider<Clock>((ref) => DateTime.now);
 
 final puzzleBankProvider = Provider<ArabicPuzzleBank>(
   (ref) => ArabicPuzzleBank.defaults(),
@@ -22,6 +26,7 @@ final gameRepositoryProvider = Provider<GameLocalRepository>((ref) {
     store: ref.watch(keyValueStoreProvider),
     puzzleBank: ref.watch(puzzleBankProvider),
     random: ref.watch(randomProvider),
+    now: ref.watch(clockProvider),
   );
 });
 
@@ -37,6 +42,7 @@ class GameController extends AsyncNotifier<GameViewState> {
   bool _isMutating = false;
 
   GameLocalRepository get _repository => ref.read(gameRepositoryProvider);
+  DateTime get _now => ref.read(clockProvider)();
 
   @override
   Future<GameViewState> build() async {
@@ -105,6 +111,64 @@ class GameController extends AsyncNotifier<GameViewState> {
           );
       }
 
+      return true;
+    } finally {
+      _isMutating = false;
+    }
+  }
+
+  Future<bool> useHint() async {
+    if (_isMutating) {
+      return false;
+    }
+
+    final current = state.asData?.value;
+    if (current == null) {
+      return false;
+    }
+
+    final now = _now;
+    if (!HintSelector.hasUsefulHints(current.session)) {
+      state = AsyncData(
+        current.copyWith(
+          feedback: 'لا توجد تلميحات مفيدة إضافية لهذا اللغز الآن.',
+        ),
+      );
+      return false;
+    }
+
+    if (!HintSelector.canUseHint(current.session, now)) {
+      state = AsyncData(
+        current.copyWith(
+          feedback: 'التلميح التالي سيتاح بعد انتهاء العد التنازلي.',
+        ),
+      );
+      return false;
+    }
+
+    _isMutating = true;
+    try {
+      final nextHintIndex = HintSelector.nextHintIndex(current.session);
+      if (nextHintIndex == null) {
+        state = AsyncData(
+          current.copyWith(
+            feedback: 'لا توجد تلميحات مفيدة إضافية لهذا اللغز الآن.',
+          ),
+        );
+        return false;
+      }
+
+      final nextSession = current.session.useHintAt(now, nextHintIndex);
+      final revealedIndex = nextSession.revealedHintIndexes.last;
+      final revealedLetter = nextSession.revealedHintLetters[revealedIndex]!;
+      await _repository.saveSession(nextSession);
+
+      state = AsyncData(
+        current.copyWith(
+          session: nextSession,
+          feedback: 'تم كشف الحرف رقم ${revealedIndex + 1}: $revealedLetter',
+        ),
+      );
       return true;
     } finally {
       _isMutating = false;
