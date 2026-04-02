@@ -15,37 +15,42 @@ class GameLocalRepository {
        _random = random;
 
   static const _hasStartedKey = 'has_started';
-  static const _activeSessionKey = 'active_session';
 
   final KeyValueStore _store;
   final ArabicPuzzleBank _puzzleBank;
   final Random _random;
 
-  Future<GameSession> restoreOrCreateSession() async {
-    final cachedJson = await _store.getString(_activeSessionKey);
+  Future<GameSession> restoreOrCreateSession(GameMode mode) async {
+    final cachedJson = await _store.getString(_sessionKey(mode));
     if (cachedJson != null) {
       final cachedSession = _decodeSession(cachedJson);
       if (cachedSession != null &&
-          _puzzleBank.containsAnswer(cachedSession.answer)) {
+          cachedSession.mode == mode &&
+          _puzzleBank.containsAnswer(mode, cachedSession.answer)) {
         return cachedSession;
       }
     }
 
-    return createNextSession(round: 1);
+    return createNextSession(mode: mode, round: 1);
   }
 
   Future<void> saveSession(GameSession session) async {
     await _store.setBool(_hasStartedKey, true);
-    await _store.setString(_activeSessionKey, jsonEncode(session.toJson()));
+    await _store.setString(
+      _sessionKey(session.mode),
+      jsonEncode(session.toJson()),
+    );
   }
 
   Future<GameSession> createNextSession({
+    required GameMode mode,
     required int round,
     String? excluding,
   }) async {
     final session = GameSession(
+      mode: mode,
       round: round,
-      answer: _puzzleBank.pickRandom(_random, excluding: excluding),
+      answer: _puzzleBank.pickRandom(mode, _random, excluding: excluding),
       guesses: const [],
     );
 
@@ -65,4 +70,6 @@ class GameLocalRepository {
       return null;
     }
   }
+
+  String _sessionKey(GameMode mode) => 'active_session_${mode.cacheKey}';
 }

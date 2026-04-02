@@ -12,14 +12,14 @@ class GuessEvaluator {
     final normalizedAnswer = ArabicWordRules.normalize(answer);
     final guessLetters = ArabicWordRules.split(normalizedGuess);
     final answerLetters = ArabicWordRules.split(normalizedAnswer);
+    final wordLength = answerLetters.length;
 
-    assert(guessLetters.length == ArabicWordRules.wordLength);
-    assert(answerLetters.length == ArabicWordRules.wordLength);
+    assert(guessLetters.length == wordLength);
 
-    final matches = List<LetterMatch?>.filled(ArabicWordRules.wordLength, null);
+    final matches = List<LetterMatch?>.filled(wordLength, null);
     final remainingLetters = <String, int>{};
 
-    for (var index = 0; index < ArabicWordRules.wordLength; index++) {
+    for (var index = 0; index < wordLength; index++) {
       if (guessLetters[index] == answerLetters[index]) {
         matches[index] = LetterMatch.correct;
       } else {
@@ -29,7 +29,7 @@ class GuessEvaluator {
       }
     }
 
-    for (var index = 0; index < ArabicWordRules.wordLength; index++) {
+    for (var index = 0; index < wordLength; index++) {
       if (matches[index] != null) {
         continue;
       }

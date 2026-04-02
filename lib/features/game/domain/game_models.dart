@@ -6,6 +6,43 @@ enum SessionOutcome { inProgress, won, lost }
 
 enum RoundResultType { won, lost }
 
+enum GameMode {
+  threeLetters,
+  fourLetters,
+  fiveLetters,
+  sixLetters;
+
+  int get wordLength => switch (this) {
+    GameMode.threeLetters => 3,
+    GameMode.fourLetters => 4,
+    GameMode.fiveLetters => 5,
+    GameMode.sixLetters => 6,
+  };
+
+  String get cacheKey => switch (this) {
+    GameMode.threeLetters => '3',
+    GameMode.fourLetters => '4',
+    GameMode.fiveLetters => '5',
+    GameMode.sixLetters => '6',
+  };
+
+  String get label => '$wordLength أحرف';
+
+  String get description => switch (this) {
+    GameMode.threeLetters => 'سريع وخفيف للبدايات.',
+    GameMode.fourLetters => 'توازن سريع بين السهولة والتحدي.',
+    GameMode.fiveLetters => 'الوضع الأساسي الكلاسيكي.',
+    GameMode.sixLetters => 'تحدي أطول وتركيز أكبر.',
+  };
+
+  static GameMode fromCacheKey(String value) {
+    return GameMode.values.firstWhere(
+      (mode) => mode.cacheKey == value,
+      orElse: () => GameMode.fiveLetters,
+    );
+  }
+}
+
 class LetterEvaluation {
   const LetterEvaluation({required this.letter, required this.match});
 
@@ -25,13 +62,17 @@ class GameSession {
     required this.round,
     required this.answer,
     required this.guesses,
+    this.mode = GameMode.fiveLetters,
     this.maxAttempts = ArabicWordRules.maxAttempts,
   });
 
   final int round;
   final String answer;
   final List<String> guesses;
+  final GameMode mode;
   final int maxAttempts;
+
+  int get wordLength => mode.wordLength;
 
   int get attemptsRemaining => maxAttempts - guesses.length;
 
@@ -57,12 +98,14 @@ class GameSession {
     int? round,
     String? answer,
     List<String>? guesses,
+    GameMode? mode,
     int? maxAttempts,
   }) {
     return GameSession(
       round: round ?? this.round,
       answer: answer ?? this.answer,
       guesses: guesses ?? this.guesses,
+      mode: mode ?? this.mode,
       maxAttempts: maxAttempts ?? this.maxAttempts,
     );
   }
@@ -72,6 +115,7 @@ class GameSession {
       'round': round,
       'answer': answer,
       'guesses': guesses,
+      'mode': mode.cacheKey,
       'maxAttempts': maxAttempts,
     };
   }
@@ -81,6 +125,7 @@ class GameSession {
       round: json['round'] as int? ?? 1,
       answer: json['answer'] as String? ?? '',
       guesses: List<String>.from(json['guesses'] as List<dynamic>? ?? const []),
+      mode: GameMode.fromCacheKey(json['mode'] as String? ?? '5'),
       maxAttempts: json['maxAttempts'] as int? ?? ArabicWordRules.maxAttempts,
     );
   }
