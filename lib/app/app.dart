@@ -1,5 +1,5 @@
 import 'package:arabic_wordly/app/theme/app_theme.dart';
-import 'package:arabic_wordly/features/game/presentation/game_screen.dart';
+import 'package:arabic_wordly/features/game/presentation/mode_selection_screen.dart';
 import 'package:flutter/material.dart';
 
 class ArabicWordlyApp extends StatelessWidget {
@@ -17,7 +17,7 @@ class ArabicWordlyApp extends StatelessWidget {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: const GameScreen(),
+      home: const ModeSelectionScreen(),
     );
   }
 }

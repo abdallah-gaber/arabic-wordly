@@ -9,14 +9,27 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class GameScreen extends ConsumerStatefulWidget {
-  const GameScreen({super.key});
+class GameScreen extends StatelessWidget {
+  const GameScreen({super.key, required this.mode});
+
+  final GameMode mode;
 
   @override
-  ConsumerState<GameScreen> createState() => _GameScreenState();
+  Widget build(BuildContext context) {
+    return _GameScreenView(mode: mode);
+  }
 }
 
-class _GameScreenState extends ConsumerState<GameScreen> {
+class _GameScreenView extends ConsumerStatefulWidget {
+  const _GameScreenView({required this.mode});
+
+  final GameMode mode;
+
+  @override
+  ConsumerState<_GameScreenView> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends ConsumerState<_GameScreenView> {
   late final TextEditingController _guessController;
   bool _isResultDialogOpen = false;
 
@@ -46,7 +59,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
     }
 
     final accepted = await ref
-        .read(gameControllerProvider.notifier)
+        .read(gameControllerProvider(widget.mode).notifier)
         .submitGuess(_guessController.text);
 
     if (!mounted) {
@@ -62,7 +75,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
   Future<void> _skipPuzzle() async {
     FocusScope.of(context).unfocus();
     _guessController.clear();
-    await ref.read(gameControllerProvider.notifier).skipPuzzle();
+    await ref.read(gameControllerProvider(widget.mode).notifier).skipPuzzle();
   }
 
   Future<void> _showRoundResultDialog(RoundResult result) async {
@@ -102,19 +115,23 @@ class _GameScreenState extends ConsumerState<GameScreen> {
       return;
     }
 
-    await ref.read(gameControllerProvider.notifier).continueToNextPuzzle();
+    await ref
+        .read(gameControllerProvider(widget.mode).notifier)
+        .continueToNextPuzzle();
   }
 
   int get _currentLetterCount =>
       ArabicWordRules.split(_guessController.text).length;
 
-  bool get _isGuessReady =>
-      ArabicWordRules.isValidGuessFormat(_guessController.text);
+  bool get _isGuessReady => ArabicWordRules.isValidGuessFormat(
+    _guessController.text,
+    wordLength: widget.mode.wordLength,
+  );
 
   @override
   Widget build(BuildContext context) {
-    final gameState = ref.watch(gameControllerProvider);
-    ref.listen(gameControllerProvider, (previous, next) {
+    final gameState = ref.watch(gameControllerProvider(widget.mode));
+    ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
       if (nextResult != null && !identical(previousResult, nextResult)) {
@@ -159,6 +176,7 @@ class _GameScreenState extends ConsumerState<GameScreen> {
                         guessController: _guessController,
                         currentLetterCount: _currentLetterCount,
                         isGuessReady: _isGuessReady,
+                        mode: widget.mode,
                         onSubmitGuess: _submitGuess,
                         onSkipPuzzle: _skipPuzzle,
                       ),
@@ -193,6 +211,7 @@ class _GameLayout extends StatelessWidget {
     required this.guessController,
     required this.currentLetterCount,
     required this.isGuessReady,
+    required this.mode,
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
   });
@@ -202,6 +221,7 @@ class _GameLayout extends StatelessWidget {
   final TextEditingController guessController;
   final int currentLetterCount;
   final bool isGuessReady;
+  final GameMode mode;
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
 
@@ -254,6 +274,7 @@ class _GameLayout extends StatelessWidget {
                     currentLetterCount: currentLetterCount,
                     isGuessReady: isGuessReady,
                     dense: dense,
+                    mode: session.mode,
                     onSubmitGuess: onSubmitGuess,
                     onSkipPuzzle: onSkipPuzzle,
                   ),
@@ -320,6 +341,24 @@ class _Header extends StatelessWidget {
             fontSize: dense ? 11 : null,
           ),
         ),
+        SizedBox(height: dense ? 8 : 10),
+        Text(
+          'الوضع الحالي: ${session.mode.label}',
+          textAlign: TextAlign.center,
+          style: textTheme.labelLarge?.copyWith(
+            color: const Color(0xFF157A6E),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Align(
+          alignment: Alignment.center,
+          child: TextButton.icon(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(Icons.tune_rounded, size: 18),
+            label: const Text('تغيير الوضع'),
+          ),
+        ),
         SizedBox(
           height: dense
               ? 10
@@ -357,6 +396,7 @@ class _InputSection extends StatelessWidget {
     required this.currentLetterCount,
     required this.isGuessReady,
     required this.dense,
+    required this.mode,
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
   });
@@ -365,6 +405,7 @@ class _InputSection extends StatelessWidget {
   final int currentLetterCount;
   final bool isGuessReady;
   final bool dense;
+  final GameMode mode;
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
 
@@ -386,7 +427,7 @@ class _InputSection extends StatelessWidget {
           textAlign: TextAlign.center,
           keyboardType: TextInputType.text,
           textInputAction: TextInputAction.done,
-          maxLength: ArabicWordRules.wordLength,
+          maxLength: mode.wordLength,
           maxLengthEnforcement: MaxLengthEnforcement.enforced,
           inputFormatters: [
             FilteringTextInputFormatter.allow(RegExp(r'[\u0600-\u06FF]+')),
@@ -396,7 +437,7 @@ class _InputSection extends StatelessWidget {
           ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
           decoration: InputDecoration(
             labelText: 'التخمين الحالي',
-            hintText: 'اكتب كلمة من ${ArabicWordRules.wordLength} أحرف',
+            hintText: 'اكتب كلمة من ${mode.wordLength} أحرف',
             counterText: '',
             suffixIcon: Container(
               margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
@@ -410,7 +451,7 @@ class _InputSection extends StatelessWidget {
                 child: Directionality(
                   textDirection: TextDirection.ltr,
                   child: Text(
-                    '$currentLetterCount / ${ArabicWordRules.wordLength}',
+                    '$currentLetterCount / ${mode.wordLength}',
                     style: Theme.of(context).textTheme.titleSmall?.copyWith(
                       color: progressColor,
                       fontWeight: FontWeight.w800,
@@ -427,7 +468,7 @@ class _InputSection extends StatelessWidget {
         Text(
           isGuessReady
               ? 'الطول صحيح. يمكنك التحقق الآن.'
-              : 'اكتب ${ArabicWordRules.wordLength} أحرف كاملة لتفعيل التحقق.',
+              : 'اكتب ${mode.wordLength} أحرف كاملة لتفعيل التحقق.',
           textAlign: TextAlign.center,
           style:
               (dense
@@ -572,8 +613,8 @@ class _GuessGrid extends StatelessWidget {
         ? 54.0
         : 62.0;
     final boardWidth =
-        (tileSize * ArabicWordRules.wordLength) +
-        (horizontalGap * (ArabicWordRules.wordLength - 1));
+        (tileSize * session.wordLength) +
+        (horizontalGap * (session.wordLength - 1));
     final boardHeight =
         (tileSize * session.maxAttempts) +
         (verticalGap * (session.maxAttempts - 1));
@@ -592,6 +633,7 @@ class _GuessGrid extends StatelessWidget {
                 _GuessRow(
                   tileSize: tileSize,
                   gap: horizontalGap,
+                  wordLength: session.wordLength,
                   letters: index < session.guesses.length
                       ? GuessEvaluator.evaluate(
                           guess: session.guesses[index],
@@ -609,18 +651,24 @@ class _GuessGrid extends StatelessWidget {
 }
 
 class _GuessRow extends StatelessWidget {
-  const _GuessRow({required this.tileSize, required this.gap, this.letters});
+  const _GuessRow({
+    required this.tileSize,
+    required this.gap,
+    required this.wordLength,
+    this.letters,
+  });
 
   final List<LetterEvaluation>? letters;
   final double tileSize;
   final double gap;
+  final int wordLength;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List<Widget>.generate(
-        ArabicWordRules.wordLength,
+        wordLength,
         (index) => Padding(
           padding: EdgeInsetsDirectional.only(start: index == 0 ? 0 : gap),
           child: _GuessTile(

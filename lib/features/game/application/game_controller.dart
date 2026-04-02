@@ -26,16 +26,21 @@ final gameRepositoryProvider = Provider<GameLocalRepository>((ref) {
 });
 
 final gameControllerProvider =
-    AsyncNotifierProvider<GameController, GameViewState>(GameController.new);
+    AsyncNotifierProvider.family<GameController, GameViewState, GameMode>(
+      GameController.new,
+    );
 
 class GameController extends AsyncNotifier<GameViewState> {
+  GameController(this.mode);
+
+  final GameMode mode;
   bool _isMutating = false;
 
   GameLocalRepository get _repository => ref.read(gameRepositoryProvider);
 
   @override
   Future<GameViewState> build() async {
-    final session = await _repository.restoreOrCreateSession();
+    final session = await _repository.restoreOrCreateSession(mode);
     return GameViewState(
       session: session,
       feedback: _feedbackForSession(session),
@@ -54,9 +59,15 @@ class GameController extends AsyncNotifier<GameViewState> {
     }
 
     final guess = ArabicWordRules.normalize(rawGuess);
-    if (!ArabicWordRules.isValidGuessFormat(guess)) {
+    if (!ArabicWordRules.isValidGuessFormat(
+      guess,
+      wordLength: current.session.wordLength,
+    )) {
       state = AsyncData(
-        current.copyWith(feedback: 'اكتب كلمة عربية صحيحة من خمسة أحرف.'),
+        current.copyWith(
+          feedback:
+              'اكتب كلمة عربية صحيحة من ${current.session.wordLength} أحرف.',
+        ),
       );
       return false;
     }
@@ -113,6 +124,7 @@ class GameController extends AsyncNotifier<GameViewState> {
     _isMutating = true;
     try {
       final nextSession = await _repository.createNextSession(
+        mode: current.session.mode,
         round: current.session.round + 1,
         excluding: current.session.answer,
       );
@@ -140,6 +152,7 @@ class GameController extends AsyncNotifier<GameViewState> {
     _isMutating = true;
     try {
       final nextSession = await _repository.createNextSession(
+        mode: current.session.mode,
         round: current.session.round + 1,
         excluding: current.session.answer,
       );
@@ -157,7 +170,7 @@ class GameController extends AsyncNotifier<GameViewState> {
   String _feedbackForSession(GameSession session) {
     return switch (session.outcome) {
       SessionOutcome.inProgress =>
-        'اكتب كلمة عربية من خمسة أحرف ثم تحقق من النتيجة.',
+        'اكتب كلمة عربية من ${session.wordLength} أحرف ثم تحقق من النتيجة.',
       SessionOutcome.won => 'أحسنت! تم حل اللغز.',
       SessionOutcome.lost => 'انتهت المحاولات في هذا اللغز.',
     };

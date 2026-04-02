@@ -3,7 +3,6 @@ import 'package:characters/characters.dart';
 class ArabicWordRules {
   const ArabicWordRules._();
 
-  static const int wordLength = 5;
   static const int maxAttempts = 6;
 
   static final RegExp _diacriticsPattern = RegExp(r'[\u064B-\u065F\u0670]');
@@ -30,7 +29,7 @@ class ArabicWordRules {
     return normalize(word).characters.toList(growable: false);
   }
 
-  static bool isValidGuessFormat(String rawInput) {
+  static bool isValidGuessFormat(String rawInput, {required int wordLength}) {
     final normalized = normalize(rawInput);
     return split(normalized).length == wordLength &&
         _arabicLettersOnly.hasMatch(normalized);

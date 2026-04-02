@@ -1,15 +1,38 @@
 import 'dart:math';
 
 import 'package:arabic_wordly/app/app.dart';
-import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/data/key_value_store.dart';
 import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
+import 'package:arabic_wordly/features/game/application/game_controller.dart';
+import 'package:arabic_wordly/features/game/domain/game_models.dart';
+import 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('GameScreen', () {
+    testWidgets('opens first to mode selection', (tester) async {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            keyValueStoreProvider.overrideWithValue(_InMemoryKeyValueStore()),
+            randomProvider.overrideWithValue(_FixedRandom(0)),
+            puzzleBankProvider.overrideWithValue(_testPuzzleBank),
+          ],
+          child: const ArabicWordlyApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('اختر وضع اللعب'), findsOneWidget);
+      expect(find.text('3 أحرف'), findsOneWidget);
+      expect(find.text('4 أحرف'), findsOneWidget);
+      expect(find.text('5 أحرف'), findsOneWidget);
+      expect(find.text('6 أحرف'), findsOneWidget);
+    });
+
     testWidgets('fits on a phone-sized viewport without layout overflow', (
       tester,
     ) async {
@@ -17,7 +40,11 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        _buildTestApp(store: _InMemoryKeyValueStore(), random: _FixedRandom(0)),
+        _buildGameApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedRandom(0),
+          mode: GameMode.fiveLetters,
+        ),
       );
 
       await tester.pumpAndSettle();
@@ -26,11 +53,32 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('renders a selected mode with the correct word length', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        _buildGameApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedRandom(0),
+          mode: GameMode.threeLetters,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.text('الوضع الحالي: 3 أحرف'), findsOneWidget);
+      expect(find.text('0 / 3'), findsOneWidget);
+    });
+
     testWidgets('loads directly into the current puzzle for a new user', (
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildTestApp(store: _InMemoryKeyValueStore(), random: _FixedRandom(0)),
+        _buildGameApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedRandom(0),
+          mode: GameMode.fiveLetters,
+        ),
       );
 
       await tester.pumpAndSettle();
@@ -49,7 +97,11 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildTestApp(store: _InMemoryKeyValueStore(), random: _FixedRandom(0)),
+        _buildGameApp(
+          store: _InMemoryKeyValueStore(),
+          random: _FixedRandom(0),
+          mode: GameMode.fiveLetters,
+        ),
       );
 
       await tester.pumpAndSettle();
@@ -76,9 +128,10 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildTestApp(
+        _buildGameApp(
           store: _InMemoryKeyValueStore(),
           random: _FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
         ),
       );
 
@@ -102,9 +155,10 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildTestApp(
+        _buildGameApp(
           store: _InMemoryKeyValueStore(),
           random: _FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
         ),
       );
 
@@ -124,9 +178,10 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildTestApp(
+        _buildGameApp(
           store: _InMemoryKeyValueStore(),
           random: _FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
         ),
       );
 
@@ -151,21 +206,27 @@ void main() {
   });
 }
 
-ProviderScope _buildTestApp({
+ProviderScope _buildGameApp({
   required KeyValueStore store,
   required Random random,
+  required GameMode mode,
 }) {
   return ProviderScope(
     overrides: [
       keyValueStoreProvider.overrideWithValue(store),
       randomProvider.overrideWithValue(random),
-      puzzleBankProvider.overrideWithValue(
-        ArabicPuzzleBank(['حديقة', 'مدرسة', 'مكتبة']),
-      ),
+      puzzleBankProvider.overrideWithValue(_testPuzzleBank),
     ],
-    child: const ArabicWordlyApp(),
+    child: MaterialApp(home: GameScreen(mode: mode)),
   );
 }
+
+final _testPuzzleBank = ArabicPuzzleBank({
+  GameMode.threeLetters: ['بيت', 'باب', 'نور'],
+  GameMode.fourLetters: ['كتاب', 'قهوة', 'وردة'],
+  GameMode.fiveLetters: ['حديقة', 'مدرسة', 'مكتبة'],
+  GameMode.sixLetters: ['سيارات', 'مدارسك', 'تفاحات'],
+});
 
 class _InMemoryKeyValueStore implements KeyValueStore {
   final Map<String, Object> _values = <String, Object>{};
