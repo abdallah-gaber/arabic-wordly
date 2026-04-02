@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:arabic_wordly/app/app_branding.dart';
+import 'package:arabic_wordly/app/services/haptics_service.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
@@ -36,10 +37,18 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   late final TextEditingController _guessController;
   late final Timer _hintTimer;
   bool _isResultDialogOpen = false;
+  bool _wasGuessReady = false;
 
   void _handleGuessChanged() {
+    final isReady = _isGuessReady;
+    if (isReady && !_wasGuessReady) {
+      unawaited(HapticsService.selection());
+    }
+
     if (mounted) {
-      setState(() {});
+      setState(() {
+        _wasGuessReady = isReady;
+      });
     }
   }
 
@@ -65,6 +74,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
   Future<void> _submitGuess() async {
     if (!_isGuessReady) {
+      unawaited(HapticsService.warning());
       return;
     }
 
@@ -78,7 +88,16 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     FocusScope.of(context).unfocus();
     if (accepted) {
+      final nextState = ref
+          .read(gameControllerProvider(widget.mode))
+          .asData
+          ?.value;
+      if (nextState?.pendingResult == null) {
+        unawaited(HapticsService.lightImpact());
+      }
       _guessController.clear();
+    } else {
+      unawaited(HapticsService.warning());
     }
   }
 
@@ -86,11 +105,31 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     FocusScope.of(context).unfocus();
     _guessController.clear();
     await ref.read(gameControllerProvider(widget.mode).notifier).skipPuzzle();
+    unawaited(HapticsService.mediumImpact());
   }
 
   Future<void> _useHint() async {
     FocusScope.of(context).unfocus();
-    await ref.read(gameControllerProvider(widget.mode).notifier).useHint();
+    final currentState = ref
+        .read(gameControllerProvider(widget.mode))
+        .asData
+        ?.value;
+    final previousRevealedCount =
+        currentState?.session.revealedHintIndexes.length ?? 0;
+    final used = await ref
+        .read(gameControllerProvider(widget.mode).notifier)
+        .useHint();
+    final nextState = ref
+        .read(gameControllerProvider(widget.mode))
+        .asData
+        ?.value;
+    final nextRevealedCount =
+        nextState?.session.revealedHintIndexes.length ?? 0;
+    if (used && nextRevealedCount > previousRevealedCount) {
+      unawaited(HapticsService.selection());
+    } else {
+      unawaited(HapticsService.warning());
+    }
   }
 
   Future<void> _showRoundResultDialog(RoundResult result) async {
@@ -151,6 +190,11 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
       if (nextResult != null && !identical(previousResult, nextResult)) {
+        unawaited(
+          nextResult.type == RoundResultType.won
+              ? HapticsService.success()
+              : HapticsService.failure(),
+        );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showRoundResultDialog(nextResult);
         });
@@ -158,51 +202,58 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     });
 
     return Scaffold(
-      body: SafeArea(
-        child: gameState.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stackTrace) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Text(
-                'حدث خطأ أثناء تحميل اللعبة.',
-                style: Theme.of(context).textTheme.titleLarge,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _GameBackground()),
+          SafeArea(
+            child: gameState.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    'حدث خطأ أثناء تحميل اللعبة.',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
               ),
-            ),
-          ),
-          data: (viewState) => LayoutBuilder(
-            builder: (context, constraints) {
-              return SingleChildScrollView(
-                padding: EdgeInsets.zero,
-                child: ConstrainedBox(
-                  constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: Center(
+              data: (viewState) => LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    padding: EdgeInsets.zero,
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 720),
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                        child: _GameLayout(
-                          session: viewState.session,
-                          feedback:
-                              viewState.feedback ??
-                              'استمر حتى تصل إلى الإجابة الصحيحة.',
-                          guessController: _guessController,
-                          currentLetterCount: _currentLetterCount,
-                          isGuessReady: _isGuessReady,
-                          mode: widget.mode,
-                          now: now,
-                          onSubmitGuess: _submitGuess,
-                          onSkipPuzzle: _skipPuzzle,
-                          onUseHint: _useHint,
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 720),
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                            child: _GameLayout(
+                              session: viewState.session,
+                              feedback:
+                                  viewState.feedback ??
+                                  'استمر حتى تصل إلى الإجابة الصحيحة.',
+                              guessController: _guessController,
+                              currentLetterCount: _currentLetterCount,
+                              isGuessReady: _isGuessReady,
+                              mode: widget.mode,
+                              now: now,
+                              onSubmitGuess: _submitGuess,
+                              onSkipPuzzle: _skipPuzzle,
+                              onUseHint: _useHint,
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -243,7 +294,10 @@ class _GameLayout extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _Header(session: session, compact: compact, dense: dense),
+        _EntranceMotion(
+          delayFactor: 0,
+          child: _Header(session: session, compact: compact, dense: dense),
+        ),
         SizedBox(
           height: dense
               ? 10
@@ -251,40 +305,43 @@ class _GameLayout extends StatelessWidget {
               ? 12
               : 18,
         ),
-        Card(
-          child: Padding(
-            padding: EdgeInsets.all(
-              dense
-                  ? 10
-                  : compact
-                  ? 14
-                  : 18,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _GuessGrid(session: session, compact: compact, dense: dense),
-                SizedBox(
-                  height: dense
-                      ? 8
-                      : compact
-                      ? 12
-                      : 16,
-                ),
-                _InputSection(
-                  guessController: guessController,
-                  currentLetterCount: currentLetterCount,
-                  isGuessReady: isGuessReady,
-                  dense: dense,
-                  session: session,
-                  mode: session.mode,
-                  now: now,
-                  onSubmitGuess: onSubmitGuess,
-                  onSkipPuzzle: onSkipPuzzle,
-                  onUseHint: onUseHint,
-                ),
-              ],
+        _EntranceMotion(
+          delayFactor: 1,
+          child: Card(
+            child: Padding(
+              padding: EdgeInsets.all(
+                dense
+                    ? 10
+                    : compact
+                    ? 14
+                    : 18,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  _GuessGrid(session: session, compact: compact, dense: dense),
+                  SizedBox(
+                    height: dense
+                        ? 8
+                        : compact
+                        ? 12
+                        : 16,
+                  ),
+                  _InputSection(
+                    guessController: guessController,
+                    currentLetterCount: currentLetterCount,
+                    isGuessReady: isGuessReady,
+                    dense: dense,
+                    session: session,
+                    mode: session.mode,
+                    now: now,
+                    onSubmitGuess: onSubmitGuess,
+                    onSkipPuzzle: onSkipPuzzle,
+                    onUseHint: onUseHint,
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -295,8 +352,103 @@ class _GameLayout extends StatelessWidget {
               ? 10
               : 14,
         ),
-        _FeedbackBanner(feedback: feedback, compact: compact),
+        _EntranceMotion(
+          delayFactor: 2,
+          child: _FeedbackBanner(feedback: feedback, compact: compact),
+        ),
       ],
+    );
+  }
+}
+
+class _GameBackground extends StatelessWidget {
+  const _GameBackground();
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFFF9F5EE), Color(0xFFF2F8F5), Color(0xFFF8F4EC)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Stack(
+        children: const [
+          Positioned(
+            top: -90,
+            right: -50,
+            child: _BackgroundOrb(
+              size: 220,
+              colors: [Color(0x3329A28E), Color(0x00FFFFFF)],
+            ),
+          ),
+          Positioned(
+            top: 260,
+            left: -70,
+            child: _BackgroundOrb(
+              size: 180,
+              colors: [Color(0x22E0A93B), Color(0x00FFFFFF)],
+            ),
+          ),
+          Positioned(
+            bottom: -40,
+            right: 30,
+            child: _BackgroundOrb(
+              size: 200,
+              colors: [Color(0x1F157A6E), Color(0x00FFFFFF)],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BackgroundOrb extends StatelessWidget {
+  const _BackgroundOrb({required this.size, required this.colors});
+
+  final double size;
+  final List<Color> colors;
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: RadialGradient(colors: colors),
+        ),
+      ),
+    );
+  }
+}
+
+class _EntranceMotion extends StatelessWidget {
+  const _EntranceMotion({required this.child, required this.delayFactor});
+
+  final Widget child;
+  final int delayFactor;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: 1),
+      duration: Duration(milliseconds: 320 + (delayFactor * 120)),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, child) {
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: Offset(0, (1 - value) * 18),
+            child: child,
+          ),
+        );
+      },
+      child: child,
     );
   }
 }
@@ -617,7 +769,18 @@ class _HintPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFCF6),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFD9D2C6)),
+        border: Border.all(
+          color: canUseHint ? const Color(0xFFB9D7CF) : const Color(0xFFD9D2C6),
+        ),
+        boxShadow: canUseHint
+            ? [
+                BoxShadow(
+                  color: const Color(0x14157A6E),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
+                ),
+              ]
+            : null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -668,19 +831,23 @@ class _HintPanel extends StatelessWidget {
             ),
           ),
           SizedBox(height: dense ? 8 : 10),
-          Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style:
-                (dense
-                        ? Theme.of(context).textTheme.bodySmall
-                        : Theme.of(context).textTheme.bodyMedium)
-                    ?.copyWith(
-                      color: canUseHint
-                          ? const Color(0xFF157A6E)
-                          : const Color(0xFF5D635F),
-                      fontWeight: FontWeight.w700,
-                    ),
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 220),
+            child: Text(
+              subtitle,
+              key: ValueKey(subtitle),
+              textAlign: TextAlign.center,
+              style:
+                  (dense
+                          ? Theme.of(context).textTheme.bodySmall
+                          : Theme.of(context).textTheme.bodyMedium)
+                      ?.copyWith(
+                        color: canUseHint
+                            ? const Color(0xFF157A6E)
+                            : const Color(0xFF5D635F),
+                        fontWeight: FontWeight.w700,
+                      ),
+            ),
           ),
           SizedBox(height: dense ? 8 : 10),
           FilledButton.tonalIcon(
@@ -720,37 +887,57 @@ class _HintTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final revealed = letter != null;
 
-    return Container(
+    return SizedBox(
       width: width,
-      padding: EdgeInsets.symmetric(vertical: dense ? 8 : 10),
-      decoration: BoxDecoration(
-        color: revealed ? const Color(0xFFEAF3F0) : Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: revealed ? const Color(0xFF157A6E) : const Color(0xFFD9D2C6),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 240),
+        curve: Curves.easeOutCubic,
+        padding: EdgeInsets.symmetric(vertical: dense ? 8 : 10),
+        decoration: BoxDecoration(
+          color: revealed ? const Color(0xFFEAF3F0) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: revealed ? const Color(0xFF157A6E) : const Color(0xFFD9D2C6),
+          ),
+          boxShadow: revealed
+              ? [
+                  BoxShadow(
+                    color: const Color(0x22157A6E),
+                    blurRadius: 12,
+                    offset: const Offset(0, 6),
+                  ),
+                ]
+              : null,
         ),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            '${index + 1}',
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-              color: const Color(0xFF5D635F),
-              fontWeight: FontWeight.w800,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '${index + 1}',
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: const Color(0xFF5D635F),
+                fontWeight: FontWeight.w800,
+              ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            letter ?? '؟',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: revealed
-                  ? const Color(0xFF157A6E)
-                  : const Color(0xFF8E9B95),
+            const SizedBox(height: 4),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              transitionBuilder: (child, animation) {
+                return ScaleTransition(scale: animation, child: child);
+              },
+              child: Text(
+                letter ?? '؟',
+                key: ValueKey(letter ?? 'empty-$index'),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: revealed
+                      ? const Color(0xFF157A6E)
+                      : const Color(0xFF8E9B95),
+                ),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -777,9 +964,16 @@ class _StatCard extends StatelessWidget {
         vertical: dense ? 12 : 14,
       ),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.72),
+        color: Colors.white.withValues(alpha: 0.78),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: colorScheme.outlineVariant),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0x14157A6E),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -814,22 +1008,45 @@ class _FeedbackBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: compact ? 14 : 16,
-        vertical: compact ? 12 : 16,
-      ),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEAF3F0),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFCAE0D7)),
-      ),
-      child: Text(
-        feedback,
-        textAlign: TextAlign.center,
-        style: Theme.of(
-          context,
-        ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 260),
+      switchInCurve: Curves.easeOutCubic,
+      switchOutCurve: Curves.easeInCubic,
+      transitionBuilder: (child, animation) {
+        return FadeTransition(
+          opacity: animation,
+          child: SizeTransition(
+            sizeFactor: animation,
+            axisAlignment: -1,
+            child: child,
+          ),
+        );
+      },
+      child: Container(
+        key: ValueKey(feedback),
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 14 : 16,
+          vertical: compact ? 12 : 16,
+        ),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF3F0),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFCAE0D7)),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0x12157A6E),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Text(
+          feedback,
+          textAlign: TextAlign.center,
+          style: Theme.of(
+            context,
+          ).textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.w600),
+        ),
       ),
     );
   }
@@ -942,7 +1159,7 @@ class _GuessRow extends StatelessWidget {
   }
 }
 
-class _GuessTile extends StatelessWidget {
+class _GuessTile extends StatefulWidget {
   const _GuessTile({
     required this.size,
     required this.letter,
@@ -954,8 +1171,54 @@ class _GuessTile extends StatelessWidget {
   final LetterMatch? match;
 
   @override
+  State<_GuessTile> createState() => _GuessTileState();
+}
+
+class _GuessTileState extends State<_GuessTile>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scale;
+  late final Animation<double> _offset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 320),
+    );
+    _scale = Tween<double>(
+      begin: 0.92,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
+    _offset = Tween<double>(
+      begin: 10,
+      end: 0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    if (widget.match != null) {
+      _controller.value = 1;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _GuessTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.match == null && widget.match != null) {
+      _controller
+        ..reset()
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final (backgroundColor, borderColor, textColor) = switch (match) {
+    final (backgroundColor, borderColor, textColor) = switch (widget.match) {
       LetterMatch.correct => (
         const Color(0xFF157A6E),
         const Color(0xFF157A6E),
@@ -974,21 +1237,48 @@ class _GuessTile extends StatelessWidget {
       null => (Colors.white, const Color(0xFFD9D2C6), const Color(0xFF1F2A2E)),
     };
 
-    return SizedBox.square(
-      dimension: size,
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: backgroundColor,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: borderColor),
-        ),
-        child: Center(
-          child: Text(
-            letter,
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: textColor,
-              fontSize: size * 0.38,
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(0, _offset.value),
+          child: Transform.scale(scale: _scale.value, child: child),
+        );
+      },
+      child: SizedBox.square(
+        dimension: widget.size,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          decoration: BoxDecoration(
+            color: backgroundColor,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+            boxShadow: widget.match == null
+                ? null
+                : [
+                    BoxShadow(
+                      color: backgroundColor.withValues(alpha: 0.18),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+          ),
+          child: Center(
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 180),
+              transitionBuilder: (child, animation) {
+                return FadeTransition(opacity: animation, child: child);
+              },
+              child: Text(
+                widget.letter,
+                key: ValueKey('${widget.letter}-${widget.match}'),
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: textColor,
+                  fontSize: widget.size * 0.38,
+                ),
+              ),
             ),
           ),
         ),
