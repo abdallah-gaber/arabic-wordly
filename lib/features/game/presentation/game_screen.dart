@@ -6,6 +6,7 @@ import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
+import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -437,8 +438,11 @@ class _InputSection extends StatelessWidget {
     final progressBackground = isGuessReady
         ? const Color(0xFFE4F2EF)
         : const Color(0xFFFCEAEA);
-    final canUseHint = session.canUseHint(now);
-    final hintWait = session.remainingHintWait(now);
+    final hasHintsRemaining = HintSelector.hasUsefulHints(session);
+    final canUseHint = HintSelector.canUseHint(session, now);
+    final hintWait = hasHintsRemaining
+        ? session.remainingHintWait(now)
+        : Duration.zero;
     final hintLetters = session.revealedHintLetters;
 
     return Column(
@@ -507,7 +511,7 @@ class _InputSection extends StatelessWidget {
         _HintPanel(
           dense: dense,
           canUseHint: canUseHint,
-          hasHintsRemaining: session.hasHintsRemaining,
+          hasHintsRemaining: hasHintsRemaining,
           hintLetters: hintLetters,
           maxHints: session.maxHints,
           mode: mode,

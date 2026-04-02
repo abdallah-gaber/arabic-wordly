@@ -161,18 +161,23 @@ class GameSession {
     return copyWith(guesses: [...guesses, guess]);
   }
 
-  GameSession useNextHint(DateTime now) {
+  GameSession useHintAt(DateTime now, int index) {
     if (!canUseHint(now)) {
       throw StateError('Hint is not available for this session.');
     }
 
-    final nextHintIndex = Iterable<int>.generate(
-      wordLength,
-    ).firstWhere((index) => !revealedHintIndexes.contains(index));
+    if (index < 0 || index >= wordLength) {
+      throw RangeError.range(index, 0, wordLength - 1, 'index');
+    }
+
+    if (revealedHintIndexes.contains(index)) {
+      throw StateError('Hint for this index was already revealed.');
+    }
+
     final usedHintsCount = revealedHintIndexes.length + 1;
 
     return copyWith(
-      revealedHintIndexes: [...revealedHintIndexes, nextHintIndex],
+      revealedHintIndexes: [...revealedHintIndexes, index],
       nextHintAvailableAtEpochMs:
           now.millisecondsSinceEpoch +
           HintRules.cooldownAfterUse(usedHintsCount).inMilliseconds,
