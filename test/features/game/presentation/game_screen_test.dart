@@ -230,6 +230,9 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('التلميح التالي جاهز الآن.'), findsOneWidget);
+      await tester.ensureVisible(
+        find.widgetWithText(FilledButton, 'استخدم تلميحاً'),
+      );
       await tester.tap(find.widgetWithText(FilledButton, 'استخدم تلميحاً'));
       await tester.pumpAndSettle();
 

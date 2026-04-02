@@ -171,46 +171,32 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
           ),
           data: (viewState) => LayoutBuilder(
             builder: (context, constraints) {
-              final shouldScroll =
-                  constraints.maxHeight < 760 || constraints.maxWidth < 560;
-              final layoutHeight = shouldScroll
-                  ? max(constraints.maxHeight - 36, 760.0)
-                  : constraints.maxHeight - 36;
-              final content = Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 720),
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                    child: SizedBox(
-                      height: layoutHeight,
-                      child: _GameLayout(
-                        session: viewState.session,
-                        feedback:
-                            viewState.feedback ??
-                            'استمر حتى تصل إلى الإجابة الصحيحة.',
-                        guessController: _guessController,
-                        currentLetterCount: _currentLetterCount,
-                        isGuessReady: _isGuessReady,
-                        mode: widget.mode,
-                        now: now,
-                        onSubmitGuess: _submitGuess,
-                        onSkipPuzzle: _skipPuzzle,
-                        onUseHint: _useHint,
-                      ),
-                    ),
-                  ),
-                ),
-              );
-
-              if (!shouldScroll) {
-                return content;
-              }
-
               return SingleChildScrollView(
                 padding: EdgeInsets.zero,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(minHeight: constraints.maxHeight),
-                  child: content,
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 720),
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                        child: _GameLayout(
+                          session: viewState.session,
+                          feedback:
+                              viewState.feedback ??
+                              'استمر حتى تصل إلى الإجابة الصحيحة.',
+                          guessController: _guessController,
+                          currentLetterCount: _currentLetterCount,
+                          isGuessReady: _isGuessReady,
+                          mode: widget.mode,
+                          now: now,
+                          onSubmitGuess: _submitGuess,
+                          onSkipPuzzle: _skipPuzzle,
+                          onUseHint: _useHint,
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
               );
             },
@@ -249,10 +235,11 @@ class _GameLayout extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final compact = size.height < 700;
+    final compact = size.height < 700 || size.width < 640;
     final dense = size.width < 430 || size.height < 820;
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _Header(session: session, compact: compact, dense: dense),
@@ -263,47 +250,40 @@ class _GameLayout extends StatelessWidget {
               ? 12
               : 18,
         ),
-        Expanded(
-          child: Card(
-            child: Padding(
-              padding: EdgeInsets.all(
-                dense
-                    ? 10
-                    : compact
-                    ? 14
-                    : 18,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: _GuessGrid(
-                      session: session,
-                      compact: compact,
-                      dense: dense,
-                    ),
-                  ),
-                  SizedBox(
-                    height: dense
-                        ? 8
-                        : compact
-                        ? 12
-                        : 16,
-                  ),
-                  _InputSection(
-                    guessController: guessController,
-                    currentLetterCount: currentLetterCount,
-                    isGuessReady: isGuessReady,
-                    dense: dense,
-                    session: session,
-                    mode: session.mode,
-                    now: now,
-                    onSubmitGuess: onSubmitGuess,
-                    onSkipPuzzle: onSkipPuzzle,
-                    onUseHint: onUseHint,
-                  ),
-                ],
-              ),
+        Card(
+          child: Padding(
+            padding: EdgeInsets.all(
+              dense
+                  ? 10
+                  : compact
+                  ? 14
+                  : 18,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _GuessGrid(session: session, compact: compact, dense: dense),
+                SizedBox(
+                  height: dense
+                      ? 8
+                      : compact
+                      ? 12
+                      : 16,
+                ),
+                _InputSection(
+                  guessController: guessController,
+                  currentLetterCount: currentLetterCount,
+                  isGuessReady: isGuessReady,
+                  dense: dense,
+                  session: session,
+                  mode: session.mode,
+                  now: now,
+                  onSubmitGuess: onSubmitGuess,
+                  onSkipPuzzle: onSkipPuzzle,
+                  onUseHint: onUseHint,
+                ),
+              ],
             ),
           ),
         ),
@@ -585,11 +565,13 @@ class _HintPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
     final subtitle = switch ((canUseHint, hasHintsRemaining)) {
       (true, _) => 'التلميح التالي جاهز الآن.',
       (false, true) => 'التلميح التالي بعد ${_formatHintWait(nextHintWait)}.',
       (false, false) => 'اكتملت كل التلميحات المتاحة لهذا اللغز.',
     };
+    final tileWidth = size.width < 500 ? 52.0 : 60.0;
 
     return Container(
       padding: EdgeInsets.all(dense ? 12 : 14),
@@ -619,11 +601,14 @@ class _HintPanel extends StatelessWidget {
                   ),
                 ),
               ),
-              Text(
-                '$revealedHintCount / $maxHints',
-                style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                  color: const Color(0xFF5D635F),
-                  fontWeight: FontWeight.w800,
+              Directionality(
+                textDirection: TextDirection.ltr,
+                child: Text(
+                  '$revealedHintCount / $maxHints',
+                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: const Color(0xFF5D635F),
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
             ],
@@ -638,6 +623,7 @@ class _HintPanel extends StatelessWidget {
                 dense: dense,
                 index: index,
                 letter: hintLetters[index],
+                width: tileWidth,
               ),
               growable: false,
             ),
@@ -683,18 +669,20 @@ class _HintTile extends StatelessWidget {
     required this.dense,
     required this.index,
     required this.letter,
+    required this.width,
   });
 
   final bool dense;
   final int index;
   final String? letter;
+  final double width;
 
   @override
   Widget build(BuildContext context) {
     final revealed = letter != null;
 
     return Container(
-      width: dense ? 54 : 60,
+      width: width,
       padding: EdgeInsets.symmetric(vertical: dense ? 8 : 10),
       decoration: BoxDecoration(
         color: revealed ? const Color(0xFFEAF3F0) : Colors.white,
@@ -821,52 +809,60 @@ class _GuessGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
     final horizontalGap = dense
-        ? 4.0
-        : compact
         ? 6.0
-        : 8.0;
+        : compact
+        ? 8.0
+        : 10.0;
     final verticalGap = dense
-        ? 4.0
-        : compact
         ? 6.0
+        : compact
+        ? 8.0
         : 10.0;
     final tileSize = dense
-        ? 42.0
+        ? 48.0
         : compact
-        ? 54.0
-        : 62.0;
+        ? 58.0
+        : 68.0;
     final boardWidth =
         (tileSize * session.wordLength) +
         (horizontalGap * (session.wordLength - 1));
     final boardHeight =
         (tileSize * session.maxAttempts) +
         (verticalGap * (session.maxAttempts - 1));
+    final sectionHeight = max(
+      boardHeight + (dense ? 12.0 : 18.0),
+      min(size.height * (dense ? 0.20 : 0.28), boardHeight + 24),
+    );
 
     return Center(
-      child: FittedBox(
-        fit: BoxFit.contain,
-        child: SizedBox(
-          width: boardWidth,
-          height: boardHeight,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              for (var index = 0; index < session.maxAttempts; index++) ...[
-                if (index > 0) SizedBox(height: verticalGap),
-                _GuessRow(
-                  tileSize: tileSize,
-                  gap: horizontalGap,
-                  wordLength: session.wordLength,
-                  letters: index < session.guesses.length
-                      ? GuessEvaluator.evaluate(
-                          guess: session.guesses[index],
-                          answer: session.answer,
-                        ).letters
-                      : null,
-                ),
+      child: SizedBox(
+        height: sectionHeight,
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: SizedBox(
+            width: boardWidth,
+            height: boardHeight,
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                for (var index = 0; index < session.maxAttempts; index++) ...[
+                  if (index > 0) SizedBox(height: verticalGap),
+                  _GuessRow(
+                    tileSize: tileSize,
+                    gap: horizontalGap,
+                    wordLength: session.wordLength,
+                    letters: index < session.guesses.length
+                        ? GuessEvaluator.evaluate(
+                            guess: session.guesses[index],
+                            answer: session.answer,
+                          ).letters
+                        : null,
+                  ),
+                ],
               ],
-            ],
+            ),
           ),
         ),
       ),
