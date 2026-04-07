@@ -39,10 +39,12 @@ More planning details live in [docs/phases.md](docs/phases.md).
 
 ## Project Structure
 
-- [lib/app](lib/app): app shell, theme, and shared branding
+- [lib/app](lib/app): app shell, theme, shared branding, and cross-cutting `services/` (e.g. haptics)
 - [lib/features/game](lib/features/game): game domain, persistence, controller, and UI
 - [test/features/game](test/features/game): repository, rules, and widget coverage
-- [docs](docs): phase plans, delivery notes, and roadmap docs
+- [docs](docs): phase plans, delivery notes, and roadmap docs — see [docs/README.md](docs/README.md) for an index
+
+Layering, product vs package naming, and bootstrap (`main` / Riverpod) are summarized in [docs/architecture.md](docs/architecture.md).
 
 ## Contributing
 
