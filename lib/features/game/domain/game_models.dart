@@ -105,6 +105,7 @@ class GameSession {
     this.revealedHintIndexes = const [],
     this.startedAtEpochMs = 0,
     this.nextHintAvailableAtEpochMs = 0,
+    this.completionPoints = 0,
   });
 
   final int round;
@@ -116,6 +117,7 @@ class GameSession {
   final List<int> revealedHintIndexes;
   final int startedAtEpochMs;
   final int nextHintAvailableAtEpochMs;
+  final int completionPoints;
 
   int get wordLength => mode.wordLength;
   int get maxHints => HintRules.maxHintsForWordLength(wordLength);
@@ -137,6 +139,19 @@ class GameSession {
     }
 
     final difference = nextHintAvailableAtEpochMs - now.millisecondsSinceEpoch;
+    if (difference <= 0) {
+      return Duration.zero;
+    }
+
+    return Duration(milliseconds: difference);
+  }
+
+  Duration elapsedAt(DateTime now) {
+    if (startedAtEpochMs <= 0) {
+      return Duration.zero;
+    }
+
+    final difference = now.millisecondsSinceEpoch - startedAtEpochMs;
     if (difference <= 0) {
       return Duration.zero;
     }
@@ -203,6 +218,7 @@ class GameSession {
     List<int>? revealedHintIndexes,
     int? startedAtEpochMs,
     int? nextHintAvailableAtEpochMs,
+    int? completionPoints,
   }) {
     return GameSession(
       round: round ?? this.round,
@@ -215,6 +231,7 @@ class GameSession {
       startedAtEpochMs: startedAtEpochMs ?? this.startedAtEpochMs,
       nextHintAvailableAtEpochMs:
           nextHintAvailableAtEpochMs ?? this.nextHintAvailableAtEpochMs,
+      completionPoints: completionPoints ?? this.completionPoints,
     );
   }
 
@@ -229,6 +246,7 @@ class GameSession {
       'revealedHintIndexes': revealedHintIndexes,
       'startedAtEpochMs': startedAtEpochMs,
       'nextHintAvailableAtEpochMs': nextHintAvailableAtEpochMs,
+      'completionPoints': completionPoints,
     };
   }
 
@@ -246,6 +264,7 @@ class GameSession {
       startedAtEpochMs: json['startedAtEpochMs'] as int? ?? 0,
       nextHintAvailableAtEpochMs:
           json['nextHintAvailableAtEpochMs'] as int? ?? 0,
+      completionPoints: json['completionPoints'] as int? ?? 0,
     );
   }
 }
@@ -256,14 +275,24 @@ class RoundResult {
     required this.answer,
     required this.round,
     required this.attemptsUsed,
+    required this.pointsEarned,
+    required this.totalScore,
+    required this.currentStreak,
   });
 
   final RoundResultType type;
   final String answer;
   final int round;
   final int attemptsUsed;
+  final int pointsEarned;
+  final int totalScore;
+  final int currentStreak;
 
-  factory RoundResult.fromSession(GameSession session) {
+  factory RoundResult.fromSession(
+    GameSession session, {
+    required int totalScore,
+    required int currentStreak,
+  }) {
     return RoundResult(
       type: session.outcome == SessionOutcome.won
           ? RoundResultType.won
@@ -271,6 +300,9 @@ class RoundResult {
       answer: session.answer,
       round: session.round,
       attemptsUsed: session.guesses.length,
+      pointsEarned: session.completionPoints,
+      totalScore: totalScore,
+      currentStreak: currentStreak,
     );
   }
 }

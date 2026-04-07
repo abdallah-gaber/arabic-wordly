@@ -27,5 +27,16 @@ void main() {
         LetterMatch.absent,
       ]);
     });
+
+    test('treats hamza variants as distinct letters', () {
+      final result = GuessEvaluator.evaluate(guess: 'سوال', answer: 'سؤال');
+
+      expect(result.letters.map((letter) => letter.match), [
+        LetterMatch.correct,
+        LetterMatch.absent,
+        LetterMatch.correct,
+        LetterMatch.correct,
+      ]);
+    });
   });
 }

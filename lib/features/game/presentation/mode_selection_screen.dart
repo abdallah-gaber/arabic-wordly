@@ -1,14 +1,18 @@
 import 'package:arabic_wordly/app/app_branding.dart';
+import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
+import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ModeSelectionScreen extends StatelessWidget {
+class ModeSelectionScreen extends ConsumerWidget {
   const ModeSelectionScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final textTheme = Theme.of(context).textTheme;
+    final playerStats = ref.watch(playerStatsProvider).asData?.value;
 
     return Scaffold(
       body: SafeArea(
@@ -59,6 +63,10 @@ class ModeSelectionScreen extends StatelessWidget {
                               color: const Color(0xFF5D635F),
                             ),
                           ),
+                          const SizedBox(height: 20),
+                          _SelectionSummaryCard(
+                            stats: playerStats ?? const PlayerStats(),
+                          ),
                           const SizedBox(height: 28),
                           LayoutBuilder(
                             builder: (context, innerConstraints) {
@@ -75,10 +83,10 @@ class ModeSelectionScreen extends StatelessWidget {
                                     SliverGridDelegateWithFixedCrossAxisCount(
                                       crossAxisCount: crossAxisCount,
                                       childAspectRatio: crossAxisCount == 2
-                                          ? 1.65
+                                          ? 1.3
                                           : compactCard
-                                          ? 1.8
-                                          : 2.05,
+                                          ? 1.45
+                                          : 1.65,
                                       mainAxisSpacing: 14,
                                       crossAxisSpacing: 14,
                                     ),
@@ -87,6 +95,9 @@ class ModeSelectionScreen extends StatelessWidget {
                                   return _ModeCard(
                                     compact: compactCard,
                                     mode: mode,
+                                    stats:
+                                        playerStats?.statsForMode(mode) ??
+                                        ModeStats(mode: mode),
                                     onTap: () {
                                       Navigator.of(context).push(
                                         MaterialPageRoute<void>(
@@ -135,11 +146,13 @@ class ModeSelectionScreen extends StatelessWidget {
 class _ModeCard extends StatelessWidget {
   const _ModeCard({
     required this.mode,
+    required this.stats,
     required this.onTap,
     required this.compact,
   });
 
   final GameMode mode;
+  final ModeStats stats;
   final VoidCallback onTap;
   final bool compact;
 
@@ -183,7 +196,7 @@ class _ModeCard extends StatelessWidget {
                               : Theme.of(context).textTheme.bodyMedium)
                           ?.copyWith(color: const Color(0xFF5D635F)),
                 ),
-                SizedBox(height: compact ? 10 : 14),
+                SizedBox(height: compact ? 8 : 10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -201,9 +214,115 @@ class _ModeCard extends StatelessWidget {
                     ],
                   ],
                 ),
+                SizedBox(height: compact ? 8 : 10),
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _ModeStatPill(label: 'النقاط ${stats.totalScore}'),
+                    _ModeStatPill(label: 'تم الحل ${stats.solved}'),
+                  ],
+                ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectionSummaryCard extends StatelessWidget {
+  const _SelectionSummaryCard({required this.stats});
+
+  final PlayerStats stats;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF7F4),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFCAE0D7)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceEvenly,
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          _SelectionMetric(
+            label: 'إجمالي النقاط',
+            value: '${stats.totalScore}',
+          ),
+          _SelectionMetric(
+            label: 'السلسلة الحالية',
+            value: '${stats.currentStreak}',
+          ),
+          _SelectionMetric(label: 'تم الحل', value: '${stats.totalSolved}'),
+          _SelectionMetric(label: 'أفضل سلسلة', value: '${stats.bestStreak}'),
+        ],
+      ),
+    );
+  }
+}
+
+class _SelectionMetric extends StatelessWidget {
+  const _SelectionMetric({required this.label, required this.value});
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minWidth: 110),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              color: const Color(0xFF157A6E),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF5D635F),
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ModeStatPill extends StatelessWidget {
+  const _ModeStatPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFFFCF6),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFCAE0D7)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: const Color(0xFF157A6E),
+          fontWeight: FontWeight.w800,
         ),
       ),
     );

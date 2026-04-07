@@ -6,6 +6,7 @@ import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
+import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 typedef Clock = DateTime Function();
@@ -20,6 +21,10 @@ final clockProvider = Provider<Clock>((ref) => DateTime.now);
 final puzzleBankProvider = Provider<ArabicPuzzleBank>(
   (ref) => ArabicPuzzleBank.defaults(),
 );
+
+final playerStatsProvider = FutureProvider<PlayerStats>((ref) async {
+  return ref.watch(gameRepositoryProvider).restoreStats();
+});
 
 final gameRepositoryProvider = Provider<GameLocalRepository>((ref) {
   return GameLocalRepository(
@@ -47,10 +52,11 @@ class GameController extends AsyncNotifier<GameViewState> {
   @override
   Future<GameViewState> build() async {
     final session = await _repository.restoreOrCreateSession(mode);
+    final stats = await _repository.restoreStats();
     return GameViewState(
       session: session,
       feedback: _feedbackForSession(session),
-      pendingResult: _pendingResultForSession(session),
+      pendingResult: _pendingResultForSession(session, stats: stats),
     );
   }
 
@@ -80,11 +86,12 @@ class GameController extends AsyncNotifier<GameViewState> {
 
     _isMutating = true;
     try {
-      final nextSession = current.session.addGuess(guess);
-      await _repository.saveSession(nextSession);
+      final existingStats = await _repository.restoreStats();
+      var nextSession = current.session.addGuess(guess);
 
       switch (nextSession.outcome) {
         case SessionOutcome.inProgress:
+          await _repository.saveSession(nextSession);
           state = AsyncData(
             current.copyWith(
               session: nextSession,
@@ -94,19 +101,52 @@ class GameController extends AsyncNotifier<GameViewState> {
             ),
           );
         case SessionOutcome.won:
+          final pointsEarned = ScoreRules.pointsForSolvedRound(
+            attemptsUsed: nextSession.guesses.length,
+            maxAttempts: nextSession.maxAttempts,
+            hintsUsed: nextSession.revealedHintIndexes.length,
+            elapsed: nextSession.elapsedAt(_now),
+          );
+          final updatedStats = _recordStats(
+            existingStats,
+            session: nextSession,
+            completion: RoundCompletion.won,
+            pointsEarned: pointsEarned,
+          );
+          nextSession = nextSession.copyWith(completionPoints: pointsEarned);
+          await _repository.saveSession(nextSession);
+          await _repository.saveStats(updatedStats);
+          ref.invalidate(playerStatsProvider);
           state = AsyncData(
             current.copyWith(
               session: nextSession,
               feedback: 'أحسنت! تم حل اللغز.',
-              pendingResult: RoundResult.fromSession(nextSession),
+              pendingResult: RoundResult.fromSession(
+                nextSession,
+                totalScore: updatedStats.totalScore,
+                currentStreak: updatedStats.currentStreak,
+              ),
             ),
           );
         case SessionOutcome.lost:
+          final updatedStats = _recordStats(
+            existingStats,
+            session: nextSession,
+            completion: RoundCompletion.lost,
+            pointsEarned: 0,
+          );
+          await _repository.saveSession(nextSession);
+          await _repository.saveStats(updatedStats);
+          ref.invalidate(playerStatsProvider);
           state = AsyncData(
             current.copyWith(
               session: nextSession,
               feedback: 'انتهت المحاولات في هذا اللغز.',
-              pendingResult: RoundResult.fromSession(nextSession),
+              pendingResult: RoundResult.fromSession(
+                nextSession,
+                totalScore: updatedStats.totalScore,
+                currentStreak: updatedStats.currentStreak,
+              ),
             ),
           );
       }
@@ -187,6 +227,15 @@ class GameController extends AsyncNotifier<GameViewState> {
 
     _isMutating = true;
     try {
+      final existingStats = await _repository.restoreStats();
+      final updatedStats = _recordStats(
+        existingStats,
+        session: current.session,
+        completion: RoundCompletion.skipped,
+        pointsEarned: 0,
+      );
+      await _repository.saveStats(updatedStats);
+      ref.invalidate(playerStatsProvider);
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
@@ -195,7 +244,7 @@ class GameController extends AsyncNotifier<GameViewState> {
       state = AsyncData(
         GameViewState(
           session: nextSession,
-          feedback: 'تم فتح لغز جديد. يمكنك المحاولة من جديد.',
+          feedback: 'تم فتح لغز جديد. تم احتساب التخطي كخسارة في الإحصاءات.',
         ),
       );
     } finally {
@@ -240,9 +289,31 @@ class GameController extends AsyncNotifier<GameViewState> {
     };
   }
 
-  RoundResult? _pendingResultForSession(GameSession session) {
+  RoundResult? _pendingResultForSession(
+    GameSession session, {
+    required PlayerStats stats,
+  }) {
     return session.outcome == SessionOutcome.inProgress
         ? null
-        : RoundResult.fromSession(session);
+        : RoundResult.fromSession(
+            session,
+            totalScore: stats.totalScore,
+            currentStreak: stats.currentStreak,
+          );
+  }
+
+  PlayerStats _recordStats(
+    PlayerStats currentStats, {
+    required GameSession session,
+    required RoundCompletion completion,
+    required int pointsEarned,
+  }) {
+    return currentStats.recordRound(
+      mode: session.mode,
+      completion: completion,
+      attemptsUsed: session.guesses.length,
+      pointsEarned: pointsEarned,
+      elapsed: session.elapsedAt(_now),
+    );
   }
 }

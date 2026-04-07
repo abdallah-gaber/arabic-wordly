@@ -8,6 +8,7 @@ import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
+import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -40,6 +41,18 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   bool _wasGuessReady = false;
 
   void _handleGuessChanged() {
+    final sanitized = ArabicWordRules.sanitizeGuessInput(
+      _guessController.text,
+      maxLength: widget.mode.wordLength,
+    );
+    if (sanitized != _guessController.text) {
+      _guessController.value = TextEditingValue(
+        text: sanitized,
+        selection: TextSelection.collapsed(offset: sanitized.length),
+      );
+      return;
+    }
+
     final isReady = _isGuessReady;
     if (isReady && !_wasGuessReady) {
       unawaited(HapticsService.selection());
@@ -185,6 +198,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameControllerProvider(widget.mode));
+    final playerStats = ref.watch(playerStatsProvider).asData?.value;
     final now = ref.read(clockProvider)();
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
@@ -232,6 +246,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                             padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                             child: _GameLayout(
                               session: viewState.session,
+                              playerStats: playerStats ?? const PlayerStats(),
                               feedback:
                                   viewState.feedback ??
                                   'استمر حتى تصل إلى الإجابة الصحيحة.',
@@ -262,6 +277,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 class _GameLayout extends StatelessWidget {
   const _GameLayout({
     required this.session,
+    required this.playerStats,
     required this.feedback,
     required this.guessController,
     required this.currentLetterCount,
@@ -274,6 +290,7 @@ class _GameLayout extends StatelessWidget {
   });
 
   final GameSession session;
+  final PlayerStats playerStats;
   final String feedback;
   final TextEditingController guessController;
   final int currentLetterCount;
@@ -302,7 +319,12 @@ class _GameLayout extends StatelessWidget {
       children: [
         _EntranceMotion(
           delayFactor: 0,
-          child: _Header(session: session, compact: compact, dense: dense),
+          child: _Header(
+            session: session,
+            playerStats: playerStats,
+            compact: compact,
+            dense: dense,
+          ),
         ),
         SizedBox(
           height: dense
@@ -584,11 +606,13 @@ class _EntranceMotion extends StatelessWidget {
 class _Header extends StatelessWidget {
   const _Header({
     required this.session,
+    required this.playerStats,
     required this.compact,
     required this.dense,
   });
 
   final GameSession session;
+  final PlayerStats playerStats;
   final bool compact;
   final bool dense;
 
@@ -598,6 +622,7 @@ class _Header extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final compactHeader = width < 430;
     final stackStats = width < 360;
+    final currentModeStats = playerStats.statsForMode(session.mode);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -720,29 +745,132 @@ class _Header extends StatelessWidget {
                 value: session.round.toString(),
                 dense: dense,
               ),
+              SizedBox(height: dense ? 8 : 10),
+              _ProgressStatsCard(
+                totalScore: playerStats.totalScore,
+                currentStreak: playerStats.currentStreak,
+                solvedForMode: currentModeStats.solved,
+                dense: dense,
+              ),
             ],
           )
         else
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: _StatCard(
-                  label: 'المحاولات المتبقية',
-                  value: session.attemptsRemaining.toString(),
-                  dense: dense,
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatCard(
+                      label: 'المحاولات المتبقية',
+                      value: session.attemptsRemaining.toString(),
+                      dense: dense,
+                    ),
+                  ),
+                  SizedBox(width: dense ? 8 : 12),
+                  Expanded(
+                    child: _StatCard(
+                      label: 'الجولة',
+                      value: session.round.toString(),
+                      dense: dense,
+                    ),
+                  ),
+                ],
               ),
-              SizedBox(width: dense ? 8 : 12),
-              Expanded(
-                child: _StatCard(
-                  label: 'الجولة',
-                  value: session.round.toString(),
-                  dense: dense,
-                ),
+              SizedBox(height: dense ? 8 : 10),
+              _ProgressStatsCard(
+                totalScore: playerStats.totalScore,
+                currentStreak: playerStats.currentStreak,
+                solvedForMode: currentModeStats.solved,
+                dense: dense,
               ),
             ],
           ),
       ],
+    );
+  }
+}
+
+class _ProgressStatsCard extends StatelessWidget {
+  const _ProgressStatsCard({
+    required this.totalScore,
+    required this.currentStreak,
+    required this.solvedForMode,
+    required this.dense,
+  });
+
+  final int totalScore;
+  final int currentStreak;
+  final int solvedForMode;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < 430;
+
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(dense ? 12 : 14),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF7F4),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFCAE0D7)),
+      ),
+      child: Wrap(
+        alignment: WrapAlignment.spaceBetween,
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          _MiniMetric(label: 'النقاط', value: '$totalScore', dense: dense),
+          _MiniMetric(label: 'السلسلة', value: '$currentStreak', dense: dense),
+          _MiniMetric(
+            label: compact ? 'حل هذا الوضع' : 'تم حل هذا الوضع',
+            value: '$solvedForMode',
+            dense: dense,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniMetric extends StatelessWidget {
+  const _MiniMetric({
+    required this.label,
+    required this.value,
+    required this.dense,
+  });
+
+  final String label;
+  final String value;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: dense ? 76 : 88),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+              color: const Color(0xFF157A6E),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style:
+                (dense
+                        ? Theme.of(context).textTheme.bodySmall
+                        : Theme.of(context).textTheme.bodyMedium)
+                    ?.copyWith(color: const Color(0xFF5D635F)),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1706,16 +1834,19 @@ class _RoundResultDialog extends StatelessWidget {
     final attemptsLabel = isWin
         ? '${result.attemptsUsed} / ${ArabicWordRules.maxAttempts} محاولات'
         : 'استخدمت ${result.attemptsUsed} / ${ArabicWordRules.maxAttempts}';
+    final scoreLabel = isWin ? '+${result.pointsEarned} نقطة' : '0 نقطة';
 
     return Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
+        constraints: BoxConstraints(
+          maxWidth: 420,
+          maxHeight: MediaQuery.sizeOf(context).height - 48,
+        ),
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Material(
             color: Colors.transparent,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
               decoration: BoxDecoration(
                 color: const Color(0xFFFFFCF6),
                 borderRadius: BorderRadius.circular(28),
@@ -1728,80 +1859,94 @@ class _RoundResultDialog extends StatelessWidget {
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _DialogBadge(isWin: isWin, color: color, accent: accent),
-                  const SizedBox(height: 18),
-                  Text(
-                    isWin ? 'أحسنت!' : 'انتهت المحاولات',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: color,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    isWin
-                        ? 'تم حل الجولة ${result.round} خلال ${result.attemptsUsed} محاولة.'
-                        : 'لم تنجح في الجولة ${result.round} هذه المرة.',
-                    textAlign: TextAlign.center,
-                    style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: const Color(0xFF5D635F),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    alignment: WrapAlignment.center,
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _ResultPill(
-                        label: 'الجولة ${result.round}',
-                        background: accent.withValues(alpha: 0.22),
-                        foreground: color,
-                      ),
-                      _ResultPill(
-                        label: attemptsLabel,
-                        background: const Color(0xFFF4F0E7),
-                        foreground: const Color(0xFF5D635F),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 14,
-                    ),
-                    decoration: BoxDecoration(
-                      color: accent.withValues(alpha: 0.22),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Text(
-                      'الكلمة الصحيحة: ${result.answer}',
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _DialogBadge(isWin: isWin, color: color, accent: accent),
+                    const SizedBox(height: 14),
+                    Text(
+                      isWin ? 'أحسنت!' : 'انتهت المحاولات',
                       textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w800,
+                      style: Theme.of(context).textTheme.headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.w800, color: color),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      isWin
+                          ? 'تم حل الجولة ${result.round} خلال ${result.attemptsUsed} محاولة.'
+                          : 'لم تنجح في الجولة ${result.round} هذه المرة.',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                        color: const Color(0xFF5D635F),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.of(context).pop(true),
-                      icon: Icon(
-                        isWin
-                            ? Icons.arrow_forward_rounded
-                            : Icons.refresh_rounded,
-                      ),
-                      label: Text(isWin ? 'التالي' : 'جرب لغزاً جديداً'),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _ResultPill(
+                          label: attemptsLabel,
+                          background: const Color(0xFFF4F0E7),
+                          foreground: const Color(0xFF5D635F),
+                        ),
+                        _ResultPill(
+                          label: scoreLabel,
+                          background: const Color(0xFFEAF3F0),
+                          foreground: const Color(0xFF157A6E),
+                        ),
+                        _ResultPill(
+                          label: 'المجموع ${result.totalScore}',
+                          background: const Color(0xFFF4F0E7),
+                          foreground: const Color(0xFF5D635F),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 12),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 14,
+                      ),
+                      decoration: BoxDecoration(
+                        color: accent.withValues(alpha: 0.22),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        'الكلمة الصحيحة: ${result.answer}',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      'السلسلة الحالية: ${result.currentStreak}',
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF5D635F),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.of(context).pop(true),
+                        icon: Icon(
+                          isWin
+                              ? Icons.arrow_forward_rounded
+                              : Icons.refresh_rounded,
+                        ),
+                        label: Text(isWin ? 'التالي' : 'جرب لغزاً جديداً'),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
