@@ -20,10 +20,14 @@ Phase 1 delivered an offline-first Arabic Wordly-style experience with determini
 | Layer | Responsibility | Location |
 |--------|----------------|----------|
 | App shell | `MaterialApp`, global RTL, theme, entry route | `lib/app/` |
-| Presentation | Screens and widgets; Riverpod `Consumer` wiring | `lib/features/game/presentation/` |
+| Presentation | Screens and widgets; Riverpod `Consumer` wiring | `lib/features/game/presentation/` (see **Game screen library** below) |
 | Application | Load/submit/reset/skip flows; Riverpod providers and notifiers | `lib/features/game/application/` (`game_providers.dart` for shared wiring, `game_controller.dart` for `GameController` and its family provider) |
 | Domain | Puzzle model, Arabic rules, evaluation, hints, stats rules | `lib/features/game/domain/` |
 | Data | Key-value persistence, puzzle bank, repository | `lib/features/game/data/` |
+
+### Game screen library
+
+The main play UI is a **single library** with a stable import path [`game_screen.dart`](../lib/features/game/presentation/game_screen.dart). Large private widgets live in `part` files under [`presentation/game_screen/`](../lib/features/game/presentation/game_screen/) (`screen_layout.dart`, `screen_header.dart`, `screen_input.dart`, `screen_hints.dart`, `screen_chips.dart`, `screen_grid.dart`, `screen_dialogs.dart`) so features stay private to the library without changing test or route imports.
 
 ### `lib/app` in detail
 
