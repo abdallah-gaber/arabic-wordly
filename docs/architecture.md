@@ -21,7 +21,7 @@ Phase 1 delivered an offline-first Arabic Wordly-style experience with determini
 |--------|----------------|----------|
 | App shell | `MaterialApp`, global RTL, theme, entry route | `lib/app/` |
 | Presentation | Screens and widgets; Riverpod `Consumer` wiring | `lib/features/game/presentation/` |
-| Application | Load/submit/reset/skip flows; Riverpod providers and notifiers | `lib/features/game/application/` |
+| Application | Load/submit/reset/skip flows; Riverpod providers and notifiers | `lib/features/game/application/` (`game_providers.dart` for shared wiring, `game_controller.dart` for `GameController` and its family provider) |
 | Domain | Puzzle model, Arabic rules, evaluation, hints, stats rules | `lib/features/game/domain/` |
 | Data | Key-value persistence, puzzle bank, repository | `lib/features/game/data/` |
 
@@ -35,7 +35,7 @@ Phase 1 delivered an offline-first Arabic Wordly-style experience with determini
 ## App shell and composition root
 
 1. **`lib/main.dart`** calls `WidgetsFlutterBinding.ensureInitialized()`, obtains `SharedPreferences`, and runs the app inside a **`ProviderScope`**.
-2. **`keyValueStoreProvider`** (defined in `game_controller.dart`) is **overridden** with `SharedPreferencesKeyValueStore` so all reads/writes go to real storage in production; tests override the same provider with in-memory fakes.
+2. **`keyValueStoreProvider`** (defined in [`game_providers.dart`](../lib/features/game/application/game_providers.dart)) is **overridden** in `main.dart` with `SharedPreferencesKeyValueStore` so all reads/writes go to real storage in production; tests override the same provider with in-memory fakes. Game orchestration lives in [`game_controller.dart`](../lib/features/game/application/game_controller.dart), which re-exports `game_providers.dart` for a single import where useful.
 3. **`ArabicWordlyApp`** sets `home` to **`ModeSelectionScreen`** (not directly to the in-game screen).
 
 ## Persistence

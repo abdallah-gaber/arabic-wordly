@@ -19,8 +19,8 @@ This file is the **canonical, Git-tracked** checklist for the “project structu
 | ID | Scope | Status | Notes |
 |----|--------|--------|--------|
 | `merge-prereq` | Merge prior feature work; sync `main` | **Done** | Score/stats slice merged (e.g. PR #3). |
-| `docs-align` | Architecture, testing notes, docs index, README links | **In PR** | Landed on branch `chore/project-structure-consistency` (commit `d681531`). Merge that PR to `main`, then set this row to **Done** here in a tiny follow-up or amend this file when adding the next slice. |
-| `split-providers` | Extract Riverpod wiring from `game_controller.dart` | **Todo** | New branch after `docs-align` is on `main`. |
+| `docs-align` | Architecture, testing notes, docs index, README links | **Done** | Merged to `main` (docs slice). |
+| `split-providers` | Extract Riverpod wiring from `game_controller.dart` | **In PR** | Branch `refactor/game-providers`: adds `game_providers.dart`, `main` imports it for `keyValueStoreProvider`, `game_controller.dart` re-exports providers. |
 | `split-game-screen` | Split `game_screen.dart` into smaller files | **Todo** | New branch; do after or in parallel with `split-providers` only if you accept a larger PR (prefer sequential). |
 | `test-support` | `test/support/` helpers + migrate widget tests | **Todo** | New branch. |
 | `naming-cleanup` | `HapticsService` vs utility; `game_models` clarity | **Todo** | New branch. |
