@@ -20,9 +20,9 @@ This file is the **canonical, Git-tracked** checklist for the “project structu
 |----|--------|--------|--------|
 | `merge-prereq` | Merge prior feature work; sync `main` | **Done** | Score/stats slice merged (e.g. PR #3). |
 | `docs-align` | Architecture, testing notes, docs index, README links | **Done** | Merged to `main` (docs slice). |
-| `split-providers` | Extract Riverpod wiring from `game_controller.dart` | **In PR** | Branch `refactor/game-providers`: adds `game_providers.dart`, `main` imports it for `keyValueStoreProvider`, `game_controller.dart` re-exports providers. |
-| `split-game-screen` | Split `game_screen.dart` into smaller files | **In PR** | Branch `refactor/game-screen-parts`: same library via `part` files under `presentation/game_screen/`. **Merge `refactor/game-providers` to `main` first**, then open this PR (or rebase onto `main` after that merge). |
-| `test-support` | `test/support/` helpers + migrate widget tests | **Todo** | New branch. |
+| `split-providers` | Extract Riverpod wiring from `game_controller.dart` | **Done** | On `main` (`game_providers.dart`, `main` composition root). |
+| `split-game-screen` | Split `game_screen.dart` into smaller files | **Done** | On `main` (`presentation/game_screen/*.dart` parts). |
+| `test-support` | `test/support/` helpers + migrate widget tests | **In PR** | Branch `test/support-game-fakes`: shared fakes, `gameScreenTestApp`, migrated `game_screen_test` + `game_local_repository_test`. |
 | `naming-cleanup` | `HapticsService` vs utility; `game_models` clarity | **Todo** | New branch. |
 | `repo-hygiene` | `everything-claude-code/` ignore / move / document | **Todo** | New branch. |
 
