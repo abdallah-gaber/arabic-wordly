@@ -8,7 +8,7 @@
 - Visible categories and cooldown-based hints
 - Score, streaks, skips, and local stats
 - Richer result dialogs and mobile typing-flow polish
-- Active-row preview, invalid-row shake, and stronger board feedback
+- Active-row preview, rejected-submit shake feedback, and stronger board feedback
 
 ## Next slice
 

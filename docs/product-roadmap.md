@@ -100,7 +100,7 @@ Do not let Firebase types leak into domain, controller, or presentation layers.
 ### Board feedback polish
 
 - Added active-row preview while typing
-- Added invalid active-row shake feedback
+- Added row shake feedback for rejected submit cases
 - Strengthened tile reveal rhythm with a staggered reveal feel
 
 ## Next execution slices

@@ -258,6 +258,11 @@ class _GuessTileState extends State<_GuessTile>
         widget.match == null &&
         widget.letter.isNotEmpty) {
       _playAnimation();
+    } else if (oldWidget.letter.isNotEmpty &&
+        widget.letter.isEmpty &&
+        widget.match == null) {
+      _animationToken++;
+      _controller.reverse(from: _controller.value == 0 ? 1 : _controller.value);
     }
   }
 
