@@ -3,14 +3,18 @@ part of 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 class _GuessGrid extends StatelessWidget {
   const _GuessGrid({
     required this.session,
+    required this.currentGuess,
     required this.compact,
     required this.dense,
+    required this.invalidGuessFeedbackTick,
     required this.layoutProfile,
   });
 
   final GameSession session;
+  final String currentGuess;
   final bool compact;
   final bool dense;
+  final int invalidGuessFeedbackTick;
   final _ModeLayoutProfile layoutProfile;
 
   @override
@@ -35,6 +39,7 @@ class _GuessGrid extends StatelessWidget {
     final activeRowIndex = session.outcome == SessionOutcome.inProgress
         ? session.guesses.length.clamp(0, session.maxAttempts - 1)
         : -1;
+    final previewLetters = ArabicWordRules.split(currentGuess);
 
     return Center(
       child: AnimatedContainer(
@@ -64,10 +69,17 @@ class _GuessGrid extends StatelessWidget {
                 for (var index = 0; index < session.maxAttempts; index++) ...[
                   if (index > 0) SizedBox(height: verticalGap),
                   _GuessRow(
+                    rowIndex: index,
                     tileSize: tileSize,
                     gap: horizontalGap,
                     wordLength: session.wordLength,
                     isActive: index == activeRowIndex,
+                    previewLetters: index == activeRowIndex
+                        ? previewLetters
+                        : const [],
+                    shakeTrigger: index == activeRowIndex
+                        ? invalidGuessFeedbackTick
+                        : 0,
                     letters: index < session.guesses.length
                         ? GuessEvaluator.evaluate(
                             guess: session.guesses[index],
@@ -85,37 +97,106 @@ class _GuessGrid extends StatelessWidget {
   }
 }
 
-class _GuessRow extends StatelessWidget {
+class _GuessRow extends StatefulWidget {
   const _GuessRow({
+    required this.rowIndex,
     required this.tileSize,
     required this.gap,
     required this.wordLength,
     required this.isActive,
+    required this.previewLetters,
+    required this.shakeTrigger,
     this.letters,
   });
 
+  final int rowIndex;
   final List<LetterEvaluation>? letters;
   final double tileSize;
   final double gap;
   final int wordLength;
   final bool isActive;
+  final List<String> previewLetters;
+  final int shakeTrigger;
+
+  @override
+  State<_GuessRow> createState() => _GuessRowState();
+}
+
+class _GuessRowState extends State<_GuessRow>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _shakeOffset;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 340),
+    );
+    _shakeOffset = TweenSequence<double>(
+      [
+        TweenSequenceItem(tween: Tween(begin: 0, end: -10), weight: 1),
+        TweenSequenceItem(tween: Tween(begin: -10, end: 10), weight: 2),
+        TweenSequenceItem(tween: Tween(begin: 10, end: -8), weight: 2),
+        TweenSequenceItem(tween: Tween(begin: -8, end: 8), weight: 2),
+        TweenSequenceItem(tween: Tween(begin: 8, end: -4), weight: 1),
+        TweenSequenceItem(tween: Tween(begin: -4, end: 0), weight: 1),
+      ],
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+  }
+
+  @override
+  void didUpdateWidget(covariant _GuessRow oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isActive && widget.shakeTrigger != oldWidget.shakeTrigger) {
+      _controller
+        ..reset()
+        ..forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List<Widget>.generate(
-        wordLength,
-        (index) => Padding(
-          padding: EdgeInsetsDirectional.only(start: index == 0 ? 0 : gap),
-          child: _GuessTile(
-            size: tileSize,
-            isActive: isActive,
-            letter: letters == null ? '' : letters![index].letter,
-            match: letters == null ? null : letters![index].match,
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(_shakeOffset.value, 0),
+          child: child,
+        );
+      },
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List<Widget>.generate(
+          widget.wordLength,
+          (index) => Padding(
+            padding: EdgeInsetsDirectional.only(
+              start: index == 0 ? 0 : widget.gap,
+            ),
+            child: _GuessTile(
+              key: ValueKey('guess-tile-${widget.rowIndex}-$index'),
+              size: widget.tileSize,
+              tileIndex: index,
+              isActive: widget.isActive,
+              letter: widget.letters == null
+                  ? (index < widget.previewLetters.length
+                        ? widget.previewLetters[index]
+                        : '')
+                  : widget.letters![index].letter,
+              match: widget.letters == null
+                  ? null
+                  : widget.letters![index].match,
+            ),
           ),
+          growable: false,
         ),
-        growable: false,
       ),
     );
   }
@@ -123,13 +204,16 @@ class _GuessRow extends StatelessWidget {
 
 class _GuessTile extends StatefulWidget {
   const _GuessTile({
+    super.key,
     required this.size,
+    required this.tileIndex,
     required this.isActive,
     required this.letter,
     required this.match,
   });
 
   final double size;
+  final int tileIndex;
   final bool isActive;
   final String letter;
   final LetterMatch? match;
@@ -143,6 +227,7 @@ class _GuessTileState extends State<_GuessTile>
   late final AnimationController _controller;
   late final Animation<double> _scale;
   late final Animation<double> _offset;
+  int _animationToken = 0;
 
   @override
   void initState() {
@@ -168,10 +253,34 @@ class _GuessTileState extends State<_GuessTile>
   void didUpdateWidget(covariant _GuessTile oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.match == null && widget.match != null) {
-      _controller
-        ..reset()
-        ..forward();
+      _playAnimation(delay: Duration(milliseconds: widget.tileIndex * 55));
+    } else if (oldWidget.letter != widget.letter &&
+        widget.match == null &&
+        widget.letter.isNotEmpty) {
+      _playAnimation();
+    } else if (oldWidget.letter.isNotEmpty &&
+        widget.letter.isEmpty &&
+        widget.match == null) {
+      _animationToken++;
+      _controller.reverse(from: _controller.value == 0 ? 1 : _controller.value);
     }
+  }
+
+  void _playAnimation({Duration delay = Duration.zero}) {
+    _animationToken++;
+    final token = _animationToken;
+    _controller.reset();
+    if (delay == Duration.zero) {
+      _controller.forward();
+      return;
+    }
+
+    Future<void>.delayed(delay, () {
+      if (!mounted || token != _animationToken) {
+        return;
+      }
+      _controller.forward();
+    });
   }
 
   @override

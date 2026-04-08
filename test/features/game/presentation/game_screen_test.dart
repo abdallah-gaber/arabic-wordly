@@ -218,6 +218,76 @@ void main() {
       },
     );
 
+    testWidgets('mirrors the typed guess in the active board row', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'حدي');
+      await tester.pump();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-0')),
+          matching: find.text('ح'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-1')),
+          matching: find.text('د'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-2')),
+          matching: find.text('ي'),
+        ),
+        findsOneWidget,
+      );
+    });
+
+    testWidgets('clears the active row preview when deleting letters', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'حدي');
+      await tester.pump();
+      await tester.enterText(find.byType(TextField), 'حد');
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-2')),
+          matching: find.text('ي'),
+        ),
+        findsNothing,
+      );
+    });
+
     testWidgets('strips non-Arabic characters from the guess field', (
       tester,
     ) async {
@@ -265,6 +335,7 @@ void main() {
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
       expect(find.text('+244 نقطة'), findsOneWidget);
       expect(find.text('المجموع 244'), findsOneWidget);
+      expect(find.text('السلسلة الحالية: 1'), findsOneWidget);
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
@@ -324,6 +395,7 @@ void main() {
 
       expect(find.text('انتهت المحاولات'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      expect(find.text('اقتربت من الإجابة هذه المرة'), findsOneWidget);
 
       await tester.ensureVisible(
         find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'),
