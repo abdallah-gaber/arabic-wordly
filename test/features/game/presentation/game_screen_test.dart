@@ -29,7 +29,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('اختر وضع اللعب'), findsOneWidget);
+      expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
       expect(find.text('3 أحرف'), findsOneWidget);
       expect(find.text('4 أحرف'), findsOneWidget);
       expect(find.text('5 أحرف'), findsOneWidget);
@@ -116,17 +116,19 @@ void main() {
       expect(find.text('5amenha'), findsOneWidget);
       expect(find.text('الجولة'), findsOneWidget);
       expect(find.text('الفئة: الطبيعة'), findsOneWidget);
-      expect(find.text('تحقق'), findsOneWidget);
+      expect(find.text('أكمل الكلمة أولاً'), findsOneWidget);
       expect(find.text('0 / 5'), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsOneWidget);
       expect(
         tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
         isNull,
       );
     });
 
-    testWidgets('enables verify only after the required number of letters', (
-      tester,
-    ) async {
+    testWidgets('enters typing mode when the input is focused', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         gameScreenTestApp(
           store: InMemoryKeyValueStore(),
@@ -137,24 +139,84 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'حدي');
-      await tester.pump();
+      expect(find.text('5amenha'), findsOneWidget);
 
-      expect(find.text('3 / 5'), findsOneWidget);
-      expect(
-        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
-        isNull,
-      );
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'حديقة');
-      await tester.pump();
-
-      expect(find.text('5 / 5'), findsOneWidget);
-      expect(
-        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
-        isNotNull,
-      );
+      expect(find.text('5amenha'), findsNothing);
+      expect(find.text('المتبقي 6'), findsOneWidget);
+      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+      expect(find.text('أكمل الكلمة أولاً'), findsOneWidget);
+      expect(find.text('الفئة: الطبيعة'), findsNothing);
+      expect(find.text('تغيير الوضع'), findsNothing);
+      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
+
+    testWidgets('tapping outside the field exits typing mode', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+
+      await tester.tap(find.text('المتبقي 6'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsNothing);
+      expect(find.text('5amenha'), findsOneWidget);
+    });
+
+    testWidgets(
+      'keeps the pinned verify action in sync with input readiness while typing',
+      (tester) async {
+        await tester.pumpWidget(
+          gameScreenTestApp(
+            store: InMemoryKeyValueStore(),
+            random: FixedRandom(0),
+            mode: GameMode.fiveLetters,
+            clock: clock.call,
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.showKeyboard(find.byType(TextField));
+        await tester.pumpAndSettle();
+
+        expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+        await tester.enterText(find.byType(TextField), 'حدي');
+        await tester.pump();
+
+        expect(find.text('3 / 5'), findsOneWidget);
+        expect(
+          tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+          isNull,
+        );
+
+        await tester.enterText(find.byType(TextField), 'حديقة');
+        await tester.pump();
+
+        expect(find.text('5 / 5'), findsOneWidget);
+        expect(find.text('تحقق الآن'), findsOneWidget);
+        expect(
+          tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+          isNotNull,
+        );
+      },
+    );
 
     testWidgets('strips non-Arabic characters from the guess field', (
       tester,
@@ -193,8 +255,10 @@ void main() {
 
       await tester.enterText(find.byType(TextField), 'حديقة');
       await tester.pump();
-      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'تحقق'));
-      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق'));
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'تحقق الآن'),
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
       await tester.pumpAndSettle();
 
       expect(find.text('أحسنت!'), findsOneWidget);
@@ -205,7 +269,9 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
 
-      expect(find.text('2'), findsWidgets);
+      expect(find.text('أحسنت!'), findsNothing);
+      expect(find.text('المحاولة الحالية'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'لغز جديد'), findsOneWidget);
     });
 
     testWidgets('starts a fresh puzzle when the player skips the current one', (
@@ -249,8 +315,10 @@ void main() {
       for (var attempt = 0; attempt < 6; attempt++) {
         await tester.enterText(find.byType(TextField), 'مكتبة');
         await tester.pump();
-        await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'تحقق'));
-        await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق'));
+        await tester.ensureVisible(
+          find.widgetWithText(ElevatedButton, 'تحقق الآن'),
+        );
+        await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
         await tester.pumpAndSettle();
       }
 
@@ -263,7 +331,9 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'));
       await tester.pumpAndSettle();
 
-      expect(find.text('2'), findsWidgets);
+      expect(find.text('انتهت المحاولات'), findsNothing);
+      expect(find.text('المحاولة الحالية'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'لغز جديد'), findsOneWidget);
     });
 
     testWidgets('reveals a hint immediately and starts the next countdown', (
@@ -280,6 +350,12 @@ void main() {
 
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('hint-panel-toggle')),
+      );
+      await tester.tap(find.byKey(const ValueKey('hint-panel-toggle')));
+      await tester.pumpAndSettle();
+
       expect(find.text('التلميح التالي جاهز الآن.'), findsOneWidget);
       await tester.ensureVisible(
         find.widgetWithText(FilledButton, 'استخدم تلميحاً'),
@@ -294,5 +370,49 @@ void main() {
         isNull,
       );
     });
+
+    testWidgets(
+      'shows hints as a collapsible secondary panel on compact layouts',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          gameScreenTestApp(
+            store: InMemoryKeyValueStore(),
+            random: FixedRandom(0),
+            mode: GameMode.fiveLetters,
+            clock: clock.call,
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('التلميحات'), findsOneWidget);
+        expect(
+          find.widgetWithText(FilledButton, 'استخدم تلميحاً'),
+          findsNothing,
+        );
+
+        await tester.ensureVisible(
+          find.byKey(const ValueKey('hint-panel-toggle')),
+        );
+        await tester.tap(find.byKey(const ValueKey('hint-panel-toggle')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.widgetWithText(FilledButton, 'استخدم تلميحاً'),
+          findsOneWidget,
+        );
+
+        await tester.tap(find.byKey(const ValueKey('hint-panel-toggle')));
+        await tester.pumpAndSettle();
+
+        expect(
+          find.widgetWithText(FilledButton, 'استخدم تلميحاً'),
+          findsNothing,
+        );
+      },
+    );
   });
 }

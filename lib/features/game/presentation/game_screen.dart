@@ -44,6 +44,7 @@ class _GameScreenView extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<_GameScreenView> {
   late final TextEditingController _guessController;
+  late final FocusNode _guessFocusNode;
   late final Timer _hintTimer;
   bool _isResultDialogOpen = false;
   bool _wasGuessReady = false;
@@ -77,6 +78,12 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   void initState() {
     super.initState();
     _guessController = TextEditingController();
+    _guessFocusNode = FocusNode()
+      ..addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      });
     _guessController.addListener(_handleGuessChanged);
     _hintTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
@@ -89,6 +96,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   void dispose() {
     _guessController.removeListener(_handleGuessChanged);
     _guessController.dispose();
+    _guessFocusNode.dispose();
     _hintTimer.cancel();
     super.dispose();
   }
@@ -203,11 +211,26 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     wordLength: widget.mode.wordLength,
   );
 
+  bool _typingModeFor(BuildContext context) {
+    return _guessFocusNode.hasFocus;
+  }
+
+  bool _shouldShowPinnedVerifyBar({required bool typingMode}) {
+    return typingMode && !kIsWeb;
+  }
+
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameControllerProvider(widget.mode));
     final playerStats = ref.watch(playerStatsProvider).asData?.value;
     final now = ref.read(clockProvider)();
+    final typingMode = _typingModeFor(context);
+    final showPinnedVerifyBar = _shouldShowPinnedVerifyBar(
+      typingMode: typingMode,
+    );
+    final bottomContentPadding =
+        20.0 +
+        (showPinnedVerifyBar ? _PinnedVerifyBar.barHeight + 16.0 : 0.0);
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
@@ -227,56 +250,134 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       body: Stack(
         children: [
           const Positioned.fill(child: _GameBackground()),
-          SafeArea(
-            child: gameState.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'حدث خطأ أثناء تحميل اللعبة.',
-                    style: Theme.of(context).textTheme.titleLarge,
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SafeArea(
+              child: gameState.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'حدث خطأ أثناء تحميل اللعبة.',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                   ),
                 ),
-              ),
-              data: (viewState) => LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.zero,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                            child: _GameLayout(
-                              session: viewState.session,
-                              playerStats: playerStats ?? const PlayerStats(),
-                              feedback:
-                                  viewState.feedback ??
-                                  'استمر حتى تصل إلى الإجابة الصحيحة.',
-                              guessController: _guessController,
-                              currentLetterCount: _currentLetterCount,
-                              isGuessReady: _isGuessReady,
-                              mode: widget.mode,
-                              now: now,
-                              onSubmitGuess: _submitGuess,
-                              onSkipPuzzle: _skipPuzzle,
-                              onUseHint: _useHint,
+                data: (viewState) => LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.zero,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 720),
+                            child: Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                bottomContentPadding,
+                              ),
+                              child: _GameLayout(
+                                session: viewState.session,
+                                playerStats: playerStats ?? const PlayerStats(),
+                                feedback:
+                                    viewState.feedback ??
+                                    'استمر حتى تصل إلى الإجابة الصحيحة.',
+                                guessController: _guessController,
+                                guessFocusNode: _guessFocusNode,
+                                currentLetterCount: _currentLetterCount,
+                                isGuessReady: _isGuessReady,
+                                mode: widget.mode,
+                                now: now,
+                                onSubmitGuess: _submitGuess,
+                                onSkipPuzzle: _skipPuzzle,
+                                onUseHint: _useHint,
+                                typingMode: typingMode,
+                                showPinnedVerifyBar: showPinnedVerifyBar,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),
+          if (showPinnedVerifyBar)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: SafeArea(
+                top: false,
+                child: _PinnedVerifyBar(
+                  isGuessReady: _isGuessReady,
+                  onSubmitGuess: _submitGuess,
+                ),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _PinnedVerifyBar extends StatelessWidget {
+  const _PinnedVerifyBar({
+    required this.isGuessReady,
+    required this.onSubmitGuess,
+  });
+
+  static const double barHeight = 72;
+
+  final bool isGuessReady;
+  final Future<void> Function() onSubmitGuess;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      key: const ValueKey('pinned-verify-bar'),
+      elevation: 10,
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFD9D2C6)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          height: barHeight - 16,
+          child: ElevatedButton.icon(
+            onPressed: isGuessReady ? onSubmitGuess : null,
+            icon: const Icon(Icons.check_circle_outline),
+            label: Text(isGuessReady ? 'تحقق الآن' : 'أكمل الكلمة أولاً'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(barHeight - 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

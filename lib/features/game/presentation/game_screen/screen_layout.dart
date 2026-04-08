@@ -6,6 +6,7 @@ class _GameLayout extends StatelessWidget {
     required this.playerStats,
     required this.feedback,
     required this.guessController,
+    required this.guessFocusNode,
     required this.currentLetterCount,
     required this.isGuessReady,
     required this.mode,
@@ -13,12 +14,15 @@ class _GameLayout extends StatelessWidget {
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
     required this.onUseHint,
+    required this.typingMode,
+    required this.showPinnedVerifyBar,
   });
 
   final GameSession session;
   final PlayerStats playerStats;
   final String feedback;
   final TextEditingController guessController;
+  final FocusNode guessFocusNode;
   final int currentLetterCount;
   final bool isGuessReady;
   final GameMode mode;
@@ -26,12 +30,14 @@ class _GameLayout extends StatelessWidget {
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
+  final bool typingMode;
+  final bool showPinnedVerifyBar;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final compact = size.height < 700 || size.width < 640;
-    final dense = size.width < 430 || size.height < 820;
+    final compact = size.height < 700 || size.width < 640 || typingMode;
+    final dense = size.width < 430 || size.height < 820 || typingMode;
     final layoutProfile = _ModeLayoutProfile.resolve(
       mode: session.mode,
       size: size,
@@ -50,6 +56,7 @@ class _GameLayout extends StatelessWidget {
             playerStats: playerStats,
             compact: compact,
             dense: dense,
+            typingMode: typingMode,
           ),
         ),
         SizedBox(
@@ -77,6 +84,7 @@ class _GameLayout extends StatelessWidget {
                   SizedBox(height: layoutProfile.sectionSpacing),
                   _InputSection(
                     guessController: guessController,
+                    guessFocusNode: guessFocusNode,
                     currentLetterCount: currentLetterCount,
                     isGuessReady: isGuessReady,
                     dense: dense,
@@ -87,23 +95,27 @@ class _GameLayout extends StatelessWidget {
                     onSkipPuzzle: onSkipPuzzle,
                     onUseHint: onUseHint,
                     layoutProfile: layoutProfile,
+                    typingMode: typingMode,
+                    showPinnedVerifyBar: showPinnedVerifyBar,
                   ),
                 ],
               ),
             ),
           ),
         ),
-        SizedBox(
-          height: dense
-              ? 8
-              : compact
-              ? 10
-              : 14,
-        ),
-        _EntranceMotion(
-          delayFactor: 2,
-          child: _FeedbackBanner(feedback: feedback, compact: compact),
-        ),
+        if (!typingMode) ...[
+          SizedBox(
+            height: dense
+                ? 8
+                : compact
+                ? 10
+                : 14,
+          ),
+          _EntranceMotion(
+            delayFactor: 2,
+            child: _FeedbackBanner(feedback: feedback, compact: compact),
+          ),
+        ],
       ],
     );
   }
@@ -120,7 +132,6 @@ class _ModeLayoutProfile {
     required this.sectionSpacing,
     required this.cardPadding,
     required this.inputPanelPadding,
-    required this.stackActions,
   });
 
   final double tileSize;
@@ -132,7 +143,6 @@ class _ModeLayoutProfile {
   final double sectionSpacing;
   final double cardPadding;
   final double inputPanelPadding;
-  final bool stackActions;
 
   static _ModeLayoutProfile resolve({
     required GameMode mode,
@@ -150,8 +160,6 @@ class _ModeLayoutProfile {
         : compact
         ? 12.0
         : 16.0;
-    final stackActions = size.width < 360;
-
     return switch (mode) {
       GameMode.threeLetters => _ModeLayoutProfile(
         tileSize: dense
@@ -167,7 +175,6 @@ class _ModeLayoutProfile {
         sectionSpacing: baseSectionSpacing - 2,
         cardPadding: baseCardPadding,
         inputPanelPadding: dense ? 12 : 16,
-        stackActions: stackActions,
       ),
       GameMode.fourLetters => _ModeLayoutProfile(
         tileSize: dense
@@ -183,7 +190,6 @@ class _ModeLayoutProfile {
         sectionSpacing: baseSectionSpacing,
         cardPadding: baseCardPadding,
         inputPanelPadding: dense ? 12 : 16,
-        stackActions: stackActions,
       ),
       GameMode.fiveLetters => _ModeLayoutProfile(
         tileSize: dense
@@ -207,7 +213,6 @@ class _ModeLayoutProfile {
         sectionSpacing: baseSectionSpacing,
         cardPadding: baseCardPadding,
         inputPanelPadding: dense ? 12 : 16,
-        stackActions: stackActions,
       ),
       GameMode.sixLetters => _ModeLayoutProfile(
         tileSize: dense
@@ -231,7 +236,6 @@ class _ModeLayoutProfile {
         sectionSpacing: dense ? 10 : 14,
         cardPadding: dense ? baseCardPadding - 1 : baseCardPadding,
         inputPanelPadding: dense ? 10 : 14,
-        stackActions: size.width < 390,
       ),
     };
   }

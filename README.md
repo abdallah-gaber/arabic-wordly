@@ -9,6 +9,7 @@
 - Keeps progress cached independently for each mode.
 - Supports replay flow with next puzzle, skip puzzle, and result dialogs.
 - Adds timed hints that reveal correct letters and can later be connected to ads or rewards.
+- Tracks local score, streaks, skips, solve distribution, and per-mode progress summaries.
 
 ## Platforms
 
@@ -18,12 +19,12 @@
 
 ## Current Roadmap
 
-- Phase 1: Playable single-player core
-- Phase 2: Mode expansion, hints, scoring, celebration, larger dictionaries
-- Phase 3: Accessibility, polish, release readiness
-- Phase 4: Multiplayer play
+- Completed baseline: multi-mode single-player, hints, local score/stats, and mode-aware UX
+- Next slice: UX hierarchy and flow polish on the mode-selection and game screens
+- Near term: daily mode, sharing, settings, and lightweight profile
+- Later: backend abstraction, guest auth, and private-room multiplayer
 
-More planning details live in [docs/phases.md](docs/phases.md).
+The live source of truth is [docs/product-roadmap.md](docs/product-roadmap.md), with a compact status view in [docs/phases.md](docs/phases.md).
 
 ## Local Development
 
@@ -43,7 +44,7 @@ More planning details live in [docs/phases.md](docs/phases.md).
 - [lib/features/game](lib/features/game): game domain, persistence, controller, and UI
 - [test/features/game](test/features/game): repository, rules, and widget coverage
 - [test/support](test/support): shared test fakes and `gameScreenTestApp` (see [docs/testing.md](docs/testing.md))
-- [docs](docs): phase plans, delivery notes, and roadmap docs — see [docs/README.md](docs/README.md) for an index
+- [docs](docs): living roadmap docs plus historical phase plans and delivery notes — see [docs/README.md](docs/README.md) for an index
 
 Layering, product vs package naming, and bootstrap (`main` / Riverpod) are summarized in [docs/architecture.md](docs/architecture.md).
 
@@ -67,4 +68,4 @@ Contributions are welcome as long as we keep the game stable, tested, and consis
 
 ## Multiplayer Direction
 
-The multiplayer planning pass is documented in [docs/phase-4-multiplayer-plan.md](docs/phase-4-multiplayer-plan.md). That document includes the recommended implementation shape and the product decisions still needed from your side.
+Multiplayer remains a later slice. The focused downstream plan is documented in [docs/phase-4-multiplayer-plan.md](docs/phase-4-multiplayer-plan.md), while the current live roadmap stays in [docs/product-roadmap.md](docs/product-roadmap.md).
