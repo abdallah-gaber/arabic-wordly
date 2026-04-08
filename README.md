@@ -56,6 +56,7 @@ Contributions are welcome as long as we keep the game stable, tested, and consis
 3. Keep logic generic where possible so word-length modes and future multiplayer remain compatible.
 4. Run formatting, analysis, and tests before opening a PR.
 5. Prefer focused commits with clear messages.
+6. Do not commit local agent or IDE bundle directories such as `everything-claude-code/` (see [.gitignore](.gitignore)).
 
 ## Design Direction
 
