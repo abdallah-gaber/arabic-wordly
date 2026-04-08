@@ -103,15 +103,21 @@ Do not let Firebase types leak into domain, controller, or presentation layers.
 - Added row shake feedback for rejected submit cases
 - Strengthened tile reveal rhythm with a staggered reveal feel
 
+### Dialog emotion polish
+
+- Added a stronger result hero area for win and loss states
+- Improved summary hierarchy so streak, retry tone, and answer reveal feel more intentional
+- Kept the round-result actions simple while giving the moment more personality
+
 ## Next execution slices
 
 ### Next slice
 
-**Dialog emotion and early-game guidance**
+**Early-game guidance and support balance**
 
-- Add more satisfying win/loss motion
-- Improve first-round guidance without trivializing the answer
+- Improve the first-round guidance without trivializing the answer
 - Rebalance hint visibility and support cues
+- Make help systems feel supportive without stealing focus from the board
 
 ### Slice after that
 

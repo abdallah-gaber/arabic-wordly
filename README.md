@@ -19,7 +19,7 @@
 
 ## Current Roadmap
 
-- Current focus: dialog motion and early-game guidance on top of the completed mobile typing and board-feedback work
+- Current focus: early-game guidance and daily/share UI on top of the completed mobile typing, board-feedback, and dialog polish work
 - Near term: daily mode UI, sharing, and lightweight settings/profile
 - Later: settings/profile, backend abstraction, auth, and private-room multiplayer
 

@@ -335,6 +335,7 @@ void main() {
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
       expect(find.text('+244 نقطة'), findsOneWidget);
       expect(find.text('المجموع 244'), findsOneWidget);
+      expect(find.text('السلسلة الحالية: 1'), findsOneWidget);
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
@@ -394,6 +395,7 @@ void main() {
 
       expect(find.text('انتهت المحاولات'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      expect(find.text('اقتربت من الإجابة هذه المرة'), findsOneWidget);
 
       await tester.ensureVisible(
         find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'),

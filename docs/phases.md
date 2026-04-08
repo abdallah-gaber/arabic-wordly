@@ -9,13 +9,13 @@
 - Score, streaks, skips, and local stats
 - Richer result dialogs and mobile typing-flow polish
 - Active-row preview, rejected-submit shake feedback, and stronger board feedback
+- Stronger win/loss dialog emotion and result hierarchy
 
 ## Next slice
 
-- Dialog emotion polish
-- Stronger win/loss animation timing
-- Better celebratory / failure feedback
-- First-round guidance and hint-balance refinement
+- Early-game guidance and hint-balance refinement
+- Daily mode UI entry and share-action wiring
+- Keep support systems helpful without competing with the main board
 
 ## Near-term roadmap
 
