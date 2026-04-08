@@ -2,7 +2,9 @@ import 'dart:math';
 
 import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
 import 'package:arabic_wordly/features/game/data/key_value_store.dart';
+import 'package:arabic_wordly/features/game/data/local_daily_mode_repository.dart';
 import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
+import 'package:arabic_wordly/features/game/domain/daily_mode_repository.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -21,6 +23,13 @@ final puzzleBankProvider = Provider<ArabicPuzzleBank>(
 
 final playerStatsProvider = FutureProvider<PlayerStats>((ref) async {
   return ref.watch(gameRepositoryProvider).restoreStats();
+});
+
+final dailyModeRepositoryProvider = Provider<DailyModeRepository>((ref) {
+  return LocalDailyModeRepository(
+    store: ref.watch(keyValueStoreProvider),
+    puzzleBank: ref.watch(puzzleBankProvider),
+  );
 });
 
 final gameRepositoryProvider = Provider<GameLocalRepository>((ref) {

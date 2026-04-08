@@ -15,6 +15,31 @@ enum SessionOutcome { inProgress, won, lost }
 
 enum RoundResultType { won, lost }
 
+enum GameTrack {
+  endless,
+  daily,
+  multiplayer;
+
+  String get cacheKey => switch (this) {
+    GameTrack.endless => 'endless',
+    GameTrack.daily => 'daily',
+    GameTrack.multiplayer => 'multiplayer',
+  };
+
+  String get label => switch (this) {
+    GameTrack.endless => 'اللعب المفتوح',
+    GameTrack.daily => 'التحدي اليومي',
+    GameTrack.multiplayer => 'متعدد اللاعبين',
+  };
+
+  static GameTrack fromCacheKey(String value) {
+    return GameTrack.values.firstWhere(
+      (track) => track.cacheKey == value,
+      orElse: () => GameTrack.endless,
+    );
+  }
+}
+
 class HintRules {
   const HintRules._();
 

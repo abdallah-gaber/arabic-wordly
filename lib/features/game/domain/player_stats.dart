@@ -142,8 +142,8 @@ class ModeStats {
   }
 }
 
-class PlayerStats {
-  const PlayerStats({
+class TrackStats {
+  const TrackStats({
     this.totalScore = 0,
     this.totalSolved = 0,
     this.totalFailed = 0,
@@ -179,7 +179,7 @@ class PlayerStats {
     return modeStats[mode] ?? ModeStats(mode: mode);
   }
 
-  PlayerStats recordRound({
+  TrackStats recordRound({
     required GameMode mode,
     required RoundCompletion completion,
     required int attemptsUsed,
@@ -208,7 +208,7 @@ class PlayerStats {
       elapsed: elapsed,
     );
 
-    return PlayerStats(
+    return TrackStats(
       totalScore: totalScore + pointsEarned,
       totalSolved: totalSolved + (solvedRound ? 1 : 0),
       totalFailed: totalFailed + (failedRound ? 1 : 0),
@@ -240,6 +240,153 @@ class PlayerStats {
     };
   }
 
+  factory TrackStats.fromJson(Map<String, dynamic> json) {
+    final distribution = Map<String, dynamic>.from(
+      json['solveDistribution'] as Map<String, dynamic>? ?? const {},
+    );
+    final encodedModeStats = Map<String, dynamic>.from(
+      json['modeStats'] as Map<String, dynamic>? ?? const {},
+    );
+
+    return TrackStats(
+      totalScore: json['totalScore'] as int? ?? 0,
+      totalSolved: json['totalSolved'] as int? ?? 0,
+      totalFailed: json['totalFailed'] as int? ?? 0,
+      totalSkipped: json['totalSkipped'] as int? ?? 0,
+      currentStreak: json['currentStreak'] as int? ?? 0,
+      bestStreak: json['bestStreak'] as int? ?? 0,
+      totalSolveTimeSeconds: json['totalSolveTimeSeconds'] as int? ?? 0,
+      solveDistribution: {
+        for (final entry in distribution.entries)
+          int.tryParse(entry.key) ?? 0: entry.value as int,
+      }..remove(0),
+      modeStats: {
+        for (final entry in encodedModeStats.entries)
+          GameMode.fromCacheKey(entry.key): ModeStats.fromJson(
+            Map<String, dynamic>.from(entry.value as Map),
+          ),
+      },
+    );
+  }
+}
+
+class PlayerStats {
+  const PlayerStats({
+    this.totalScore = 0,
+    this.totalSolved = 0,
+    this.totalFailed = 0,
+    this.totalSkipped = 0,
+    this.currentStreak = 0,
+    this.bestStreak = 0,
+    this.totalSolveTimeSeconds = 0,
+    this.solveDistribution = const {},
+    this.modeStats = const {},
+    this.trackStats = const {},
+  });
+
+  final int totalScore;
+  final int totalSolved;
+  final int totalFailed;
+  final int totalSkipped;
+  final int currentStreak;
+  final int bestStreak;
+  final int totalSolveTimeSeconds;
+  final Map<int, int> solveDistribution;
+  final Map<GameMode, ModeStats> modeStats;
+  final Map<GameTrack, TrackStats> trackStats;
+
+  int get gamesPlayed => totalSolved + totalFailed;
+
+  double get averageSolveTimeSeconds {
+    if (totalSolved == 0) {
+      return 0;
+    }
+
+    return totalSolveTimeSeconds / totalSolved;
+  }
+
+  ModeStats statsForMode(GameMode mode) {
+    return modeStats[mode] ?? ModeStats(mode: mode);
+  }
+
+  TrackStats statsForTrack(GameTrack track) {
+    return trackStats[track] ?? const TrackStats();
+  }
+
+  PlayerStats recordRound({
+    required GameMode mode,
+    GameTrack track = GameTrack.endless,
+    required RoundCompletion completion,
+    required int attemptsUsed,
+    required int pointsEarned,
+    required Duration elapsed,
+  }) {
+    final solvedRound = completion == RoundCompletion.won;
+    final failedRound = completion != RoundCompletion.won;
+    final skippedRound = completion == RoundCompletion.skipped;
+    final nextCurrentStreak = solvedRound ? currentStreak + 1 : 0;
+    final nextDistribution = Map<int, int>.from(solveDistribution);
+
+    if (solvedRound) {
+      nextDistribution.update(
+        attemptsUsed,
+        (value) => value + 1,
+        ifAbsent: () => 1,
+      );
+    }
+
+    final nextModeStats = Map<GameMode, ModeStats>.from(modeStats);
+    nextModeStats[mode] = statsForMode(mode).recordRound(
+      completion: completion,
+      attemptsUsed: attemptsUsed,
+      pointsEarned: pointsEarned,
+      elapsed: elapsed,
+    );
+    final nextTrackStats = Map<GameTrack, TrackStats>.from(trackStats);
+    nextTrackStats[track] = statsForTrack(track).recordRound(
+      mode: mode,
+      completion: completion,
+      attemptsUsed: attemptsUsed,
+      pointsEarned: pointsEarned,
+      elapsed: elapsed,
+    );
+
+    return PlayerStats(
+      totalScore: totalScore + pointsEarned,
+      totalSolved: totalSolved + (solvedRound ? 1 : 0),
+      totalFailed: totalFailed + (failedRound ? 1 : 0),
+      totalSkipped: totalSkipped + (skippedRound ? 1 : 0),
+      currentStreak: nextCurrentStreak,
+      bestStreak: math.max(bestStreak, nextCurrentStreak),
+      totalSolveTimeSeconds:
+          totalSolveTimeSeconds + (solvedRound ? elapsed.inSeconds : 0),
+      solveDistribution: nextDistribution,
+      modeStats: nextModeStats,
+      trackStats: nextTrackStats,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'totalScore': totalScore,
+      'totalSolved': totalSolved,
+      'totalFailed': totalFailed,
+      'totalSkipped': totalSkipped,
+      'currentStreak': currentStreak,
+      'bestStreak': bestStreak,
+      'totalSolveTimeSeconds': totalSolveTimeSeconds,
+      'solveDistribution': solveDistribution.map(
+        (key, value) => MapEntry(key.toString(), value),
+      ),
+      'modeStats': modeStats.map(
+        (key, value) => MapEntry(key.cacheKey, value.toJson()),
+      ),
+      'trackStats': trackStats.map(
+        (key, value) => MapEntry(key.cacheKey, value.toJson()),
+      ),
+    };
+  }
+
   factory PlayerStats.fromJson(Map<String, dynamic> json) {
     final distribution = Map<String, dynamic>.from(
       json['solveDistribution'] as Map<String, dynamic>? ?? const {},
@@ -247,6 +394,37 @@ class PlayerStats {
     final encodedModeStats = Map<String, dynamic>.from(
       json['modeStats'] as Map<String, dynamic>? ?? const {},
     );
+    final encodedTrackStats = Map<String, dynamic>.from(
+      json['trackStats'] as Map<String, dynamic>? ?? const {},
+    );
+    final parsedTrackStats = {
+      for (final entry in encodedTrackStats.entries)
+        GameTrack.fromCacheKey(entry.key): TrackStats.fromJson(
+          Map<String, dynamic>.from(entry.value as Map),
+        ),
+    };
+    final fallbackLegacyTrack = TrackStats(
+      totalScore: json['totalScore'] as int? ?? 0,
+      totalSolved: json['totalSolved'] as int? ?? 0,
+      totalFailed: json['totalFailed'] as int? ?? 0,
+      totalSkipped: json['totalSkipped'] as int? ?? 0,
+      currentStreak: json['currentStreak'] as int? ?? 0,
+      bestStreak: json['bestStreak'] as int? ?? 0,
+      totalSolveTimeSeconds: json['totalSolveTimeSeconds'] as int? ?? 0,
+      solveDistribution: {
+        for (final entry in distribution.entries)
+          int.tryParse(entry.key) ?? 0: entry.value as int,
+      }..remove(0),
+      modeStats: {
+        for (final entry in encodedModeStats.entries)
+          GameMode.fromCacheKey(entry.key): ModeStats.fromJson(
+            Map<String, dynamic>.from(entry.value as Map),
+          ),
+      },
+    );
+    final resolvedTrackStats = parsedTrackStats.isEmpty
+        ? {GameTrack.endless: fallbackLegacyTrack}
+        : parsedTrackStats;
 
     return PlayerStats(
       totalScore: json['totalScore'] as int? ?? 0,
@@ -266,6 +444,7 @@ class PlayerStats {
             Map<String, dynamic>.from(entry.value as Map),
           ),
       },
+      trackStats: resolvedTrackStats,
     );
   }
 }
