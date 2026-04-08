@@ -1,3 +1,10 @@
+/// Domain types for gameplay: match enums, `GameMode`, sessions, rounds, hints,
+/// and view state used by the application layer and UI.
+///
+/// Kept in one library as the game domain types module; persistence shapes live
+/// in `GameLocalRepository` and related data code.
+library;
+
 import 'dart:math' as math;
 
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';

@@ -34,7 +34,7 @@ The main play UI is a **single library** with a stable import path [`game_screen
 - **`app.dart`** — `ArabicWordlyApp` (`MaterialApp`, RTL `Directionality`, initial `home`).
 - **`app_branding.dart`** — Shared English/Arabic app naming constants.
 - **`theme/app_theme.dart`** — Light theme and typography.
-- **`services/`** — Cross-cutting **platform adapters** that are not game rules (e.g. `HapticsService`: static wrappers around `HapticFeedback`, no-op on web). Prefer this folder for similar small platform facades (analytics shape, etc.) rather than putting them under `features/game`.
+- **`services/`** — Cross-cutting **platform helpers** that are not game rules (for example `AppHaptics` in [`app_haptics.dart`](../lib/app/services/app_haptics.dart): static wrappers around `HapticFeedback`, no-op on web). Prefer this folder for similar small platform facades rather than putting them under `features/game`.
 
 ## App shell and composition root
 

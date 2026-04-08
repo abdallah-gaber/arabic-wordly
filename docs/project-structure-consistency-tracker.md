@@ -22,8 +22,8 @@ This file is the **canonical, Git-tracked** checklist for the “project structu
 | `docs-align` | Architecture, testing notes, docs index, README links | **Done** | Merged to `main` (docs slice). |
 | `split-providers` | Extract Riverpod wiring from `game_controller.dart` | **Done** | On `main` (`game_providers.dart`, `main` composition root). |
 | `split-game-screen` | Split `game_screen.dart` into smaller files | **Done** | On `main` (`presentation/game_screen/*.dart` parts). |
-| `test-support` | `test/support/` helpers + migrate widget tests | **In PR** | Branch `test/support-game-fakes`: shared fakes, `gameScreenTestApp`, migrated `game_screen_test` + `game_local_repository_test`. |
-| `naming-cleanup` | `HapticsService` vs utility; `game_models` clarity | **Todo** | New branch. |
+| `test-support` | `test/support/` helpers + migrate widget tests | **Done** | On `main`. |
+| `naming-cleanup` | `HapticsService` vs utility; `game_models` clarity | **In PR** | Branch `chore/naming-cleanup`: `AppHaptics` + `app_haptics.dart`; file doc on `game_models.dart`. |
 | `repo-hygiene` | `everything-claude-code/` ignore / move / document | **Todo** | New branch. |
 
 ## After each merge

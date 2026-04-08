@@ -1,8 +1,12 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
-class HapticsService {
-  const HapticsService._();
+/// Static haptic helpers (no instance state). No-ops on web and unsupported platforms.
+///
+/// Named [AppHaptics] rather than `…Service` because this is a thin facade over
+/// [HapticFeedback], not an injectable dependency.
+class AppHaptics {
+  const AppHaptics._();
 
   static bool get _isSupported =>
       !kIsWeb &&
