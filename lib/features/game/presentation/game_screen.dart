@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'package:arabic_wordly/app/app_branding.dart';
-import 'package:arabic_wordly/app/services/haptics_service.dart';
+import 'package:arabic_wordly/app/services/app_haptics.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
@@ -63,7 +63,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     final isReady = _isGuessReady;
     if (isReady && !_wasGuessReady) {
-      unawaited(HapticsService.selection());
+      unawaited(AppHaptics.selection());
     }
 
     if (mounted) {
@@ -95,7 +95,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
   Future<void> _submitGuess() async {
     if (!_isGuessReady) {
-      unawaited(HapticsService.warning());
+      unawaited(AppHaptics.warning());
       return;
     }
 
@@ -114,11 +114,11 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
           .asData
           ?.value;
       if (nextState?.pendingResult == null) {
-        unawaited(HapticsService.lightImpact());
+        unawaited(AppHaptics.lightImpact());
       }
       _guessController.clear();
     } else {
-      unawaited(HapticsService.warning());
+      unawaited(AppHaptics.warning());
     }
   }
 
@@ -126,7 +126,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     FocusScope.of(context).unfocus();
     _guessController.clear();
     await ref.read(gameControllerProvider(widget.mode).notifier).skipPuzzle();
-    unawaited(HapticsService.mediumImpact());
+    unawaited(AppHaptics.mediumImpact());
   }
 
   Future<void> _useHint() async {
@@ -147,9 +147,9 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     final nextRevealedCount =
         nextState?.session.revealedHintIndexes.length ?? 0;
     if (used && nextRevealedCount > previousRevealedCount) {
-      unawaited(HapticsService.selection());
+      unawaited(AppHaptics.selection());
     } else {
-      unawaited(HapticsService.warning());
+      unawaited(AppHaptics.warning());
     }
   }
 
@@ -214,8 +214,8 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       if (nextResult != null && !identical(previousResult, nextResult)) {
         unawaited(
           nextResult.type == RoundResultType.won
-              ? HapticsService.success()
-              : HapticsService.failure(),
+              ? AppHaptics.success()
+              : AppHaptics.failure(),
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _showRoundResultDialog(nextResult);

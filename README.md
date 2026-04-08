@@ -39,7 +39,7 @@ More planning details live in [docs/phases.md](docs/phases.md).
 
 ## Project Structure
 
-- [lib/app](lib/app): app shell, theme, shared branding, and cross-cutting `services/` (e.g. haptics)
+- [lib/app](lib/app): app shell, theme, shared branding, and cross-cutting `services/` (e.g. `AppHaptics`)
 - [lib/features/game](lib/features/game): game domain, persistence, controller, and UI
 - [test/features/game](test/features/game): repository, rules, and widget coverage
 - [test/support](test/support): shared test fakes and `gameScreenTestApp` (see [docs/testing.md](docs/testing.md))
