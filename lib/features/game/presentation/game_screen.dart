@@ -215,6 +215,12 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     return _guessFocusNode.hasFocus;
   }
 
+  bool _shouldShowPinnedVerifyBar({
+    required bool typingMode,
+  }) {
+    return typingMode && !kIsWeb;
+  }
+
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameControllerProvider(widget.mode));
@@ -222,6 +228,9 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     final now = ref.read(clockProvider)();
     final viewInsets = MediaQuery.viewInsetsOf(context);
     final typingMode = _typingModeFor(context);
+    final showPinnedVerifyBar = _shouldShowPinnedVerifyBar(
+      typingMode: typingMode,
+    );
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
@@ -269,7 +278,11 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                               16,
                               16,
                               16,
-                              20 + viewInsets.bottom,
+                              20 +
+                                  viewInsets.bottom +
+                                  (showPinnedVerifyBar
+                                      ? _PinnedVerifyBar.barHeight + 16
+                                      : 0),
                             ),
                             child: _GameLayout(
                               session: viewState.session,
@@ -287,6 +300,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                               onSkipPuzzle: _skipPuzzle,
                               onUseHint: _useHint,
                               typingMode: typingMode,
+                              showPinnedVerifyBar: showPinnedVerifyBar,
                             ),
                           ),
                         ),
@@ -297,7 +311,65 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
               ),
             ),
           ),
+          if (showPinnedVerifyBar)
+            Positioned(
+              left: 16,
+              right: 16,
+              bottom: 16,
+              child: SafeArea(
+                top: false,
+                child: _PinnedVerifyBar(
+                  isGuessReady: _isGuessReady,
+                  onSubmitGuess: _submitGuess,
+                ),
+              ),
+            ),
         ],
+      ),
+    );
+  }
+}
+
+class _PinnedVerifyBar extends StatelessWidget {
+  const _PinnedVerifyBar({
+    required this.isGuessReady,
+    required this.onSubmitGuess,
+  });
+
+  static const double barHeight = 64;
+
+  final bool isGuessReady;
+  final Future<void> Function() onSubmitGuess;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      key: const ValueKey('pinned-verify-bar'),
+      elevation: 10,
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(24),
+      child: Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFD9D2C6)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          height: barHeight - 16,
+          child: ElevatedButton.icon(
+            onPressed: isGuessReady ? onSubmitGuess : null,
+            icon: const Icon(Icons.check_circle_outline),
+            label: Text(isGuessReady ? 'تحقق الآن' : 'أكمل الكلمة أولاً'),
+          ),
+        ),
       ),
     );
   }

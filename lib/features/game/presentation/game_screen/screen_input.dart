@@ -15,6 +15,7 @@ class _InputSection extends StatefulWidget {
     required this.onUseHint,
     required this.layoutProfile,
     required this.typingMode,
+    required this.showPinnedVerifyBar,
   });
 
   final TextEditingController guessController;
@@ -30,6 +31,7 @@ class _InputSection extends StatefulWidget {
   final Future<void> Function() onUseHint;
   final _ModeLayoutProfile layoutProfile;
   final bool typingMode;
+  final bool showPinnedVerifyBar;
 
   @override
   State<_InputSection> createState() => _InputSectionState();
@@ -238,20 +240,25 @@ class _InputSectionState extends State<_InputSection> {
                     ),
                   ],
                 ),
-              SizedBox(height: widget.dense ? 10 : 12),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: widget.isGuessReady ? widget.onSubmitGuess : null,
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: Text(
-                    widget.isGuessReady ? 'تحقق الآن' : 'أكمل الكلمة أولاً',
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    minimumSize: Size.fromHeight(widget.dense ? 50 : 56),
+              if (!widget.showPinnedVerifyBar) ...[
+                SizedBox(height: widget.dense ? 10 : 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        widget.isGuessReady ? widget.onSubmitGuess : null,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: Text(
+                      widget.isGuessReady
+                          ? 'تحقق الآن'
+                          : 'أكمل الكلمة أولاً',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      minimumSize: Size.fromHeight(widget.dense ? 50 : 56),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

@@ -15,6 +15,7 @@ class _GameLayout extends StatelessWidget {
     required this.onSkipPuzzle,
     required this.onUseHint,
     required this.typingMode,
+    required this.showPinnedVerifyBar,
   });
 
   final GameSession session;
@@ -30,6 +31,7 @@ class _GameLayout extends StatelessWidget {
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
   final bool typingMode;
+  final bool showPinnedVerifyBar;
 
   @override
   Widget build(BuildContext context) {
@@ -94,6 +96,7 @@ class _GameLayout extends StatelessWidget {
                     onUseHint: onUseHint,
                     layoutProfile: layoutProfile,
                     typingMode: typingMode,
+                    showPinnedVerifyBar: showPinnedVerifyBar,
                   ),
                 ],
               ),

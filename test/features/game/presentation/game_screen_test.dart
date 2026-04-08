@@ -146,40 +146,49 @@ void main() {
 
       expect(find.text('5amenha'), findsNothing);
       expect(find.text('المتبقي 6'), findsOneWidget);
+      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+      expect(find.text('أكمل الكلمة أولاً'), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('enables verify only after the required number of letters', (
-      tester,
-    ) async {
-      await tester.pumpWidget(
-        gameScreenTestApp(
-          store: InMemoryKeyValueStore(),
-          random: FixedRandom(0),
-          mode: GameMode.fiveLetters,
-          clock: clock.call,
-        ),
-      );
+    testWidgets(
+      'keeps the pinned verify action in sync with input readiness while typing',
+      (tester) async {
+        await tester.pumpWidget(
+          gameScreenTestApp(
+            store: InMemoryKeyValueStore(),
+            random: FixedRandom(0),
+            mode: GameMode.fiveLetters,
+            clock: clock.call,
+          ),
+        );
 
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'حدي');
-      await tester.pump();
+        await tester.pumpAndSettle();
+        await tester.showKeyboard(find.byType(TextField));
+        await tester.pumpAndSettle();
 
-      expect(find.text('3 / 5'), findsOneWidget);
-      expect(
-        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
-        isNull,
-      );
+        expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+        await tester.enterText(find.byType(TextField), 'حدي');
+        await tester.pump();
 
-      await tester.enterText(find.byType(TextField), 'حديقة');
-      await tester.pump();
+        expect(find.text('3 / 5'), findsOneWidget);
+        expect(
+          tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+          isNull,
+        );
 
-      expect(find.text('5 / 5'), findsOneWidget);
-      expect(
-        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
-        isNotNull,
-      );
-    });
+        await tester.enterText(find.byType(TextField), 'حديقة');
+        await tester.pump();
+
+        expect(find.text('5 / 5'), findsOneWidget);
+        expect(find.text('تحقق الآن'), findsOneWidget);
+        expect(
+          tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+          isNotNull,
+        );
+      },
+    );
 
     testWidgets('strips non-Arabic characters from the guess field', (
       tester,
