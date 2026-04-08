@@ -103,17 +103,19 @@ class _GameLayout extends StatelessWidget {
             ),
           ),
         ),
-        SizedBox(
-          height: dense
-              ? 8
-              : compact
-              ? 10
-              : 14,
-        ),
-        _EntranceMotion(
-          delayFactor: 2,
-          child: _FeedbackBanner(feedback: feedback, compact: compact),
-        ),
+        if (!typingMode) ...[
+          SizedBox(
+            height: dense
+                ? 8
+                : compact
+                ? 10
+                : 14,
+          ),
+          _EntranceMotion(
+            delayFactor: 2,
+            child: _FeedbackBanner(feedback: feedback, compact: compact),
+          ),
+        ],
       ],
     );
   }

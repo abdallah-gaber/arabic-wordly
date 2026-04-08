@@ -262,22 +262,50 @@ class _InputSectionState extends State<_InputSection> {
           ),
         ),
         SizedBox(height: widget.dense ? 8 : 12),
-        TextButton.icon(
-          onPressed: widget.onSkipPuzzle,
-          icon: const Icon(Icons.autorenew_rounded),
-          label: const Text('لغز جديد'),
-        ),
-        SizedBox(height: widget.dense ? 8 : 12),
-        _SecondaryPanelToggle(
-          title: 'التلميحات',
-          subtitle: hasHintsRemaining
-              ? canUseHint
-                    ? 'جاهز الآن، وقد يقلل نقاط الجولة.'
-                    : 'مقفلة مؤقتاً حتى ${_formatHintWait(hintWait)}.'
-              : 'لا توجد تلميحات إضافية لهذا اللغز.',
-          isExpanded: _showHints,
-          onToggle: () => setState(() => _showHints = !_showHints),
-        ),
+        if (widget.typingMode)
+          Row(
+            children: [
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: widget.onSkipPuzzle,
+                  icon: const Icon(Icons.autorenew_rounded),
+                  label: const Text('لغز جديد'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _SecondaryPanelToggle(
+                  title: 'التلميحات',
+                  subtitle: hasHintsRemaining
+                      ? canUseHint
+                            ? 'جاهز'
+                            : _formatHintWait(hintWait)
+                      : 'اكتمل',
+                  isExpanded: _showHints,
+                  onToggle: () => setState(() => _showHints = !_showHints),
+                  compact: true,
+                ),
+              ),
+            ],
+          )
+        else ...[
+          TextButton.icon(
+            onPressed: widget.onSkipPuzzle,
+            icon: const Icon(Icons.autorenew_rounded),
+            label: const Text('لغز جديد'),
+          ),
+          SizedBox(height: widget.dense ? 8 : 12),
+          _SecondaryPanelToggle(
+            title: 'التلميحات',
+            subtitle: hasHintsRemaining
+                ? canUseHint
+                      ? 'جاهز الآن، وقد يقلل نقاط الجولة.'
+                      : 'مقفلة مؤقتاً حتى ${_formatHintWait(hintWait)}.'
+                : 'لا توجد تلميحات إضافية لهذا اللغز.',
+            isExpanded: _showHints,
+            onToggle: () => setState(() => _showHints = !_showHints),
+          ),
+        ],
         if (_showHints) ...[
           SizedBox(height: widget.dense ? 8 : 10),
           _HintPanel(
@@ -310,12 +338,14 @@ class _SecondaryPanelToggle extends StatelessWidget {
     required this.subtitle,
     required this.isExpanded,
     required this.onToggle,
+    this.compact = false,
   });
 
   final String title;
   final String subtitle;
   final bool isExpanded;
   final VoidCallback onToggle;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -324,12 +354,15 @@ class _SecondaryPanelToggle extends StatelessWidget {
       child: InkWell(
         key: const ValueKey('hint-panel-toggle'),
         onTap: onToggle,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          padding: EdgeInsets.symmetric(
+            horizontal: compact ? 12 : 14,
+            vertical: compact ? 10 : 12,
+          ),
           decoration: BoxDecoration(
             color: const Color(0xFFFFFCF6),
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
             border: Border.all(color: const Color(0xFFD9D2C6)),
           ),
           child: Row(
@@ -342,25 +375,45 @@ class _SecondaryPanelToggle extends StatelessWidget {
               ),
               const SizedBox(width: 10),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      title,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w800,
+                child: compact
+                    ? Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(fontWeight: FontWeight.w800),
+                            ),
+                          ),
+                          Text(
+                            subtitle,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: const Color(0xFF5D635F),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                          ),
+                        ],
+                      )
+                    : Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            title,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w800),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            subtitle,
+                            style: Theme.of(context).textTheme.bodySmall
+                                ?.copyWith(
+                                  color: const Color(0xFF5D635F),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: const Color(0xFF5D635F),
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
               ),
             ],
           ),

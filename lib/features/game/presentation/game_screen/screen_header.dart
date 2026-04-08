@@ -68,79 +68,92 @@ class _Header extends StatelessWidget {
                 ),
           ),
         ],
-        SizedBox(height: dense ? 8 : 10),
-        Text(
-          'الوضع الحالي: ${session.mode.label}',
-          textAlign: TextAlign.center,
-          style: textTheme.labelLarge?.copyWith(
-            color: const Color(0xFF157A6E),
-            fontWeight: FontWeight.w800,
-          ),
-        ),
-        if (session.category.isNotEmpty) ...[
-          SizedBox(height: dense ? 8 : 10),
+        SizedBox(height: typingMode ? 6 : (dense ? 8 : 10)),
+        if (typingMode) ...[
           Align(
             alignment: Alignment.center,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: width - (dense ? 24 : 32)),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: dense ? 12 : 14,
-                  vertical: dense ? 6 : 8,
+            child: Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _CompactHeaderChip(label: session.mode.label),
+                if (session.category.isNotEmpty)
+                  _CompactHeaderChip(label: session.category),
+              ],
+            ),
+          ),
+          SizedBox(height: dense ? 8 : 10),
+        ] else ...[
+          Text(
+            'الوضع الحالي: ${session.mode.label}',
+            textAlign: TextAlign.center,
+            style: textTheme.labelLarge?.copyWith(
+              color: const Color(0xFF157A6E),
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          if (session.category.isNotEmpty) ...[
+            SizedBox(height: dense ? 8 : 10),
+            Align(
+              alignment: Alignment.center,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: width - (dense ? 24 : 32),
                 ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEAF3F0),
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(color: const Color(0xFFB9D7CF)),
-                ),
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 8,
-                  runSpacing: 4,
-                  children: [
-                    Icon(
-                      Icons.category_outlined,
-                      size: dense ? 16 : 18,
-                      color: const Color(0xFF157A6E),
-                    ),
-                    Text(
-                      'الفئة: ${session.category}',
-                      textAlign: TextAlign.center,
-                      style: textTheme.labelLarge?.copyWith(
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: dense ? 12 : 14,
+                    vertical: dense ? 6 : 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEAF3F0),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: const Color(0xFFB9D7CF)),
+                  ),
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 8,
+                    runSpacing: 4,
+                    children: [
+                      Icon(
+                        Icons.category_outlined,
+                        size: dense ? 16 : 18,
                         color: const Color(0xFF157A6E),
-                        fontWeight: FontWeight.w800,
-                        fontSize: compactHeader ? 13 : null,
                       ),
-                    ),
-                  ],
+                      Text(
+                        'الفئة: ${session.category}',
+                        textAlign: TextAlign.center,
+                        style: textTheme.labelLarge?.copyWith(
+                          color: const Color(0xFF157A6E),
+                          fontWeight: FontWeight.w800,
+                          fontSize: compactHeader ? 13 : null,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
+          ],
+          SizedBox(height: dense ? 4 : 6),
+          Align(
+            alignment: Alignment.center,
+            child: TextButton.icon(
+              onPressed: () => Navigator.of(context).maybePop(),
+              icon: const Icon(Icons.tune_rounded, size: 18),
+              label: const Text('تغيير الوضع'),
+            ),
+          ),
+          SizedBox(
+            height: dense
+                ? 10
+                : compact
+                ? 12
+                : 16,
           ),
         ],
-        SizedBox(
-          height: typingMode
-              ? 2
-              : dense
-              ? 4
-              : 6,
-        ),
-        Align(
-          alignment: Alignment.center,
-          child: TextButton.icon(
-            onPressed: () => Navigator.of(context).maybePop(),
-            icon: const Icon(Icons.tune_rounded, size: 18),
-            label: const Text('تغيير الوضع'),
-          ),
-        ),
-        SizedBox(
-          height: dense
-              ? 10
-              : compact
-              ? 12
-              : 16,
-        ),
         if (typingMode)
           _CompactHeaderStats(
             attemptsRemaining: session.attemptsRemaining.toString(),

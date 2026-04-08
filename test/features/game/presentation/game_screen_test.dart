@@ -148,6 +148,8 @@ void main() {
       expect(find.text('المتبقي 6'), findsOneWidget);
       expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
       expect(find.text('أكمل الكلمة أولاً'), findsOneWidget);
+      expect(find.text('الفئة: الطبيعة'), findsNothing);
+      expect(find.text('تغيير الوضع'), findsNothing);
       expect(find.byType(ElevatedButton), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -267,7 +269,9 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
 
-      expect(find.text('بدأ لغز جديد. يمكنك المتابعة.'), findsOneWidget);
+      expect(find.text('أحسنت!'), findsNothing);
+      expect(find.text('المحاولة الحالية'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'لغز جديد'), findsOneWidget);
     });
 
     testWidgets('starts a fresh puzzle when the player skips the current one', (
@@ -327,7 +331,9 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'));
       await tester.pumpAndSettle();
 
-      expect(find.text('بدأ لغز جديد. يمكنك المتابعة.'), findsOneWidget);
+      expect(find.text('انتهت المحاولات'), findsNothing);
+      expect(find.text('المحاولة الحالية'), findsOneWidget);
+      expect(find.widgetWithText(TextButton, 'لغز جديد'), findsOneWidget);
     });
 
     testWidgets('reveals a hint immediately and starts the next countdown', (
