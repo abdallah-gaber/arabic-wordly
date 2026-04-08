@@ -6,14 +6,14 @@ class _Header extends StatelessWidget {
     required this.playerStats,
     required this.compact,
     required this.dense,
-    required this.keyboardVisible,
+    required this.typingMode,
   });
 
   final GameSession session;
   final PlayerStats playerStats;
   final bool compact;
   final bool dense;
-  final bool keyboardVisible;
+  final bool typingMode;
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +31,7 @@ class _Header extends StatelessWidget {
           textAlign: TextAlign.center,
           style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
-            fontSize: keyboardVisible
+            fontSize: typingMode
                 ? 22
                 : dense
                 ? 24
@@ -40,7 +40,7 @@ class _Header extends StatelessWidget {
                 : 34,
           ),
         ),
-        if (!keyboardVisible) ...[
+        if (!typingMode) ...[
           SizedBox(
             height: dense
                 ? 2
@@ -120,7 +120,7 @@ class _Header extends StatelessWidget {
           ),
         ],
         SizedBox(
-          height: keyboardVisible
+          height: typingMode
               ? 2
               : dense
               ? 4
@@ -141,7 +141,7 @@ class _Header extends StatelessWidget {
               ? 12
               : 16,
         ),
-        if (keyboardVisible)
+        if (typingMode)
           _CompactHeaderStats(
             attemptsRemaining: session.attemptsRemaining.toString(),
             round: session.round.toString(),

@@ -44,8 +44,8 @@ class _GameScreenView extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<_GameScreenView> {
   late final TextEditingController _guessController;
+  late final FocusNode _guessFocusNode;
   late final Timer _hintTimer;
-  final GlobalKey _submitButtonKey = GlobalKey();
   bool _isResultDialogOpen = false;
   bool _wasGuessReady = false;
 
@@ -72,26 +72,18 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
         _wasGuessReady = isReady;
       });
     }
-
-    if (MediaQuery.viewInsetsOf(context).bottom > 0) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final currentContext = _submitButtonKey.currentContext;
-        if (currentContext != null && mounted) {
-          Scrollable.ensureVisible(
-            currentContext,
-            alignment: 1,
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-          );
-        }
-      });
-    }
   }
 
   @override
   void initState() {
     super.initState();
     _guessController = TextEditingController();
+    _guessFocusNode = FocusNode()
+      ..addListener(() {
+        if (mounted) {
+          setState(() {});
+        }
+      });
     _guessController.addListener(_handleGuessChanged);
     _hintTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
@@ -104,6 +96,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   void dispose() {
     _guessController.removeListener(_handleGuessChanged);
     _guessController.dispose();
+    _guessFocusNode.dispose();
     _hintTimer.cancel();
     super.dispose();
   }
@@ -218,12 +211,17 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     wordLength: widget.mode.wordLength,
   );
 
+  bool _typingModeFor(BuildContext context) {
+    return _guessFocusNode.hasFocus;
+  }
+
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameControllerProvider(widget.mode));
     final playerStats = ref.watch(playerStatsProvider).asData?.value;
     final now = ref.read(clockProvider)();
     final viewInsets = MediaQuery.viewInsetsOf(context);
+    final typingMode = _typingModeFor(context);
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
@@ -280,6 +278,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                                   viewState.feedback ??
                                   'استمر حتى تصل إلى الإجابة الصحيحة.',
                               guessController: _guessController,
+                              guessFocusNode: _guessFocusNode,
                               currentLetterCount: _currentLetterCount,
                               isGuessReady: _isGuessReady,
                               mode: widget.mode,
@@ -287,7 +286,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                               onSubmitGuess: _submitGuess,
                               onSkipPuzzle: _skipPuzzle,
                               onUseHint: _useHint,
-                              submitButtonKey: _submitButtonKey,
+                              typingMode: typingMode,
                             ),
                           ),
                         ),

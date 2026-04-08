@@ -3,6 +3,7 @@ part of 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 class _InputSection extends StatefulWidget {
   const _InputSection({
     required this.guessController,
+    required this.guessFocusNode,
     required this.currentLetterCount,
     required this.isGuessReady,
     required this.dense,
@@ -13,11 +14,11 @@ class _InputSection extends StatefulWidget {
     required this.onSkipPuzzle,
     required this.onUseHint,
     required this.layoutProfile,
-    required this.keyboardVisible,
-    required this.submitButtonKey,
+    required this.typingMode,
   });
 
   final TextEditingController guessController;
+  final FocusNode guessFocusNode;
   final int currentLetterCount;
   final bool isGuessReady;
   final bool dense;
@@ -28,8 +29,7 @@ class _InputSection extends StatefulWidget {
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
   final _ModeLayoutProfile layoutProfile;
-  final bool keyboardVisible;
-  final GlobalKey submitButtonKey;
+  final bool typingMode;
 
   @override
   State<_InputSection> createState() => _InputSectionState();
@@ -41,13 +41,13 @@ class _InputSectionState extends State<_InputSection> {
   @override
   void initState() {
     super.initState();
-    _showHints = !widget.dense && !widget.keyboardVisible;
+    _showHints = !widget.dense && !widget.typingMode;
   }
 
   @override
   void didUpdateWidget(covariant _InputSection oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.keyboardVisible && !oldWidget.keyboardVisible && _showHints) {
+    if (widget.typingMode && !oldWidget.typingMode && _showHints) {
       setState(() {
         _showHints = false;
       });
@@ -159,6 +159,7 @@ class _InputSectionState extends State<_InputSection> {
               SizedBox(height: widget.dense ? 10 : 12),
               TextField(
                 controller: widget.guessController,
+                focusNode: widget.guessFocusNode,
                 autofocus: kIsWeb,
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.text,
@@ -237,34 +238,10 @@ class _InputSectionState extends State<_InputSection> {
                     ),
                   ],
                 ),
-            ],
-          ),
-        ),
-        SizedBox(height: widget.dense ? 8 : 12),
-        if (widget.layoutProfile.stackActions) ...[
-          ElevatedButton.icon(
-            key: widget.submitButtonKey,
-            onPressed: widget.isGuessReady ? widget.onSubmitGuess : null,
-            icon: const Icon(Icons.check_circle_outline),
-            label: Text(
-              widget.isGuessReady ? 'تحقق الآن' : 'أكمل الكلمة أولاً',
-            ),
-            style: ElevatedButton.styleFrom(
-              minimumSize: Size.fromHeight(widget.dense ? 50 : 56),
-            ),
-          ),
-          const SizedBox(height: 10),
-          TextButton.icon(
-            onPressed: widget.onSkipPuzzle,
-            icon: const Icon(Icons.autorenew_rounded),
-            label: const Text('لغز جديد'),
-          ),
-        ] else
-          Row(
-            children: [
-              Expanded(
+              SizedBox(height: widget.dense ? 10 : 12),
+              SizedBox(
+                width: double.infinity,
                 child: ElevatedButton.icon(
-                  key: widget.submitButtonKey,
                   onPressed: widget.isGuessReady ? widget.onSubmitGuess : null,
                   icon: const Icon(Icons.check_circle_outline),
                   label: Text(
@@ -275,16 +252,15 @@ class _InputSectionState extends State<_InputSection> {
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextButton.icon(
-                  onPressed: widget.onSkipPuzzle,
-                  icon: const Icon(Icons.autorenew_rounded),
-                  label: const Text('لغز جديد'),
-                ),
-              ),
             ],
           ),
+        ),
+        SizedBox(height: widget.dense ? 8 : 12),
+        TextButton.icon(
+          onPressed: widget.onSkipPuzzle,
+          icon: const Icon(Icons.autorenew_rounded),
+          label: const Text('لغز جديد'),
+        ),
         SizedBox(height: widget.dense ? 8 : 12),
         _SecondaryPanelToggle(
           title: 'التلميحات',

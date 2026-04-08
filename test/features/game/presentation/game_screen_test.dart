@@ -118,10 +118,35 @@ void main() {
       expect(find.text('الفئة: الطبيعة'), findsOneWidget);
       expect(find.text('أكمل الكلمة أولاً'), findsOneWidget);
       expect(find.text('0 / 5'), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsOneWidget);
       expect(
         tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
         isNull,
       );
+    });
+
+    testWidgets('enters typing mode when the input is focused', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.text('5amenha'), findsOneWidget);
+
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.pumpAndSettle();
+
+      expect(find.text('5amenha'), findsNothing);
+      expect(find.text('المتبقي 6'), findsOneWidget);
+      expect(tester.takeException(), isNull);
     });
 
     testWidgets('enables verify only after the required number of letters', (
@@ -207,7 +232,7 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
 
-      expect(find.text('2'), findsWidgets);
+      expect(find.text('بدأ لغز جديد. يمكنك المتابعة.'), findsOneWidget);
     });
 
     testWidgets('starts a fresh puzzle when the player skips the current one', (
@@ -267,7 +292,7 @@ void main() {
       await tester.tap(find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'));
       await tester.pumpAndSettle();
 
-      expect(find.text('2'), findsWidgets);
+      expect(find.text('بدأ لغز جديد. يمكنك المتابعة.'), findsOneWidget);
     });
 
     testWidgets('reveals a hint immediately and starts the next countdown', (
