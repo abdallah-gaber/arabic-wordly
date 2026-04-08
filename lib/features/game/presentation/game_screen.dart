@@ -224,11 +224,13 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     final gameState = ref.watch(gameControllerProvider(widget.mode));
     final playerStats = ref.watch(playerStatsProvider).asData?.value;
     final now = ref.read(clockProvider)();
-    final viewInsets = MediaQuery.viewInsetsOf(context);
     final typingMode = _typingModeFor(context);
     final showPinnedVerifyBar = _shouldShowPinnedVerifyBar(
       typingMode: typingMode,
     );
+    final bottomContentPadding =
+        20.0 +
+        (showPinnedVerifyBar ? _PinnedVerifyBar.barHeight + 16.0 : 0.0);
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
@@ -279,11 +281,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                                 16,
                                 16,
                                 16,
-                                20 +
-                                    viewInsets.bottom +
-                                    (showPinnedVerifyBar
-                                        ? _PinnedVerifyBar.barHeight + 16
-                                        : 0),
+                                bottomContentPadding,
                               ),
                               child: _GameLayout(
                                 session: viewState.session,
