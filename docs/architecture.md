@@ -20,10 +20,14 @@ Phase 1 delivered an offline-first Arabic Wordly-style experience with determini
 | Layer | Responsibility | Location |
 |--------|----------------|----------|
 | App shell | `MaterialApp`, global RTL, theme, entry route | `lib/app/` |
-| Presentation | Screens and widgets; Riverpod `Consumer` wiring | `lib/features/game/presentation/` |
-| Application | Load/submit/reset/skip flows; Riverpod providers and notifiers | `lib/features/game/application/` |
+| Presentation | Screens and widgets; Riverpod `Consumer` wiring | `lib/features/game/presentation/` (see **Game screen library** below) |
+| Application | Load/submit/reset/skip flows; Riverpod providers and notifiers | `lib/features/game/application/` (`game_providers.dart` for shared wiring, `game_controller.dart` for `GameController` and its family provider) |
 | Domain | Puzzle model, Arabic rules, evaluation, hints, stats rules | `lib/features/game/domain/` |
 | Data | Key-value persistence, puzzle bank, repository | `lib/features/game/data/` |
+
+### Game screen library
+
+The main play UI is a **single library** with a stable import path [`game_screen.dart`](../lib/features/game/presentation/game_screen.dart). Large private widgets live in `part` files under [`presentation/game_screen/`](../lib/features/game/presentation/game_screen/) (`screen_layout.dart`, `screen_header.dart`, `screen_input.dart`, `screen_hints.dart`, `screen_chips.dart`, `screen_grid.dart`, `screen_dialogs.dart`) so features stay private to the library without changing test or route imports.
 
 ### `lib/app` in detail
 
@@ -35,7 +39,7 @@ Phase 1 delivered an offline-first Arabic Wordly-style experience with determini
 ## App shell and composition root
 
 1. **`lib/main.dart`** calls `WidgetsFlutterBinding.ensureInitialized()`, obtains `SharedPreferences`, and runs the app inside a **`ProviderScope`**.
-2. **`keyValueStoreProvider`** (defined in `game_controller.dart`) is **overridden** with `SharedPreferencesKeyValueStore` so all reads/writes go to real storage in production; tests override the same provider with in-memory fakes.
+2. **`keyValueStoreProvider`** (defined in [`game_providers.dart`](../lib/features/game/application/game_providers.dart)) is **overridden** in `main.dart` with `SharedPreferencesKeyValueStore` so all reads/writes go to real storage in production; tests override the same provider with in-memory fakes. Game orchestration lives in [`game_controller.dart`](../lib/features/game/application/game_controller.dart), which re-exports `game_providers.dart` for a single import where useful.
 3. **`ArabicWordlyApp`** sets `home` to **`ModeSelectionScreen`** (not directly to the in-game screen).
 
 ## Persistence

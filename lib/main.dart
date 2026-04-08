@@ -1,5 +1,5 @@
 import 'package:arabic_wordly/app/app.dart';
-import 'package:arabic_wordly/features/game/application/game_controller.dart';
+import 'package:arabic_wordly/features/game/application/game_providers.dart';
 import 'package:arabic_wordly/features/game/data/shared_preferences_key_value_store.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
