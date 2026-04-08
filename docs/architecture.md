@@ -65,3 +65,32 @@ The main play UI is a **single library** with a stable import path [`game_screen
 - **Widget tests** — Mode selection, game screen flows (input, verify, win/skip/hints) with `ProviderScope` overrides; see [testing.md](testing.md).
 
 For commands and pre-commit checks, see [testing.md](testing.md).
+
+## Next evolution
+
+The next architecture work should keep the current local-first loop intact while making room for daily mode, backend portability, and multiplayer.
+
+### Game tracks and stats
+
+- Treat gameplay as **tracks** rather than one undifferentiated bucket: `endless`, `daily`, and later `multiplayer`.
+- Keep one overall player summary plus per-track summaries so the UI can render a top-level total and segmented sections without bespoke aggregation logic.
+- Preserve backward compatibility when restoring older cached stats payloads that only include the original global and per-mode fields.
+
+### Daily mode
+
+- Daily state should stay independent from endless sessions.
+- Use a separate repository boundary for daily puzzle selection, daily completion storage, and daily share formatting.
+- Reuse the same board, evaluation rules, and result dialog patterns instead of forking the main game flow.
+
+### Backend abstraction
+
+Before any Firebase package is integrated, add app-owned contracts that isolate cloud concerns:
+
+- `AuthService`
+- `UserProfileRepository`
+- `StatsSyncRepository`
+- `DailyModeRepository`
+- `MultiplayerRepository`
+- `MatchChannel`
+
+Controllers and UI should depend only on these contracts and app-owned models. Firebase SDK calls and types should stay in infrastructure/data implementations so the backend can be replaced later without product-level rewrites.

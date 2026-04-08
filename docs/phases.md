@@ -1,35 +1,46 @@
-# Delivery Phases
+# Live roadmap
 
-## Phase 1: Playable Core
+## Completed baseline
 
-- Bootstrap Flutter app for Android, iOS, and web.
-- Implement Arabic puzzle model and guess evaluation.
-- Add local caching and first-run handling.
-- Build the minimal playable UI.
-- Add tests for core logic and app flow.
-- Commit and push once validation passes.
+- Offline-first Flutter app for Android, iOS, and web
+- Arabic-first single-player game loop
+- 3 / 4 / 5 / 6-letter modes
+- Per-mode session caching
+- Visible categories
+- Smart cooldown-based hints
+- Local score, streaks, skips, solve distribution, and per-mode stats
+- Mode-aware board/input layout and richer result dialogs
+- Automated coverage for rules, persistence, and core UI flows
 
-## Phase 2: Content Expansion
+Historical details for shipped slices remain in the `phase-*-plan.md` and `phase-*-delivery.md` files.
 
-- Add four playable word-length modes: 3, 4, 5, and 6 letters.
-- Curate at least 500 Arabic words for each mode.
-- Add a mode selector and keep cached progress per mode.
-- Add timed hints and prepare the unlock flow for future rewarded ads.
-- Add a score system and cool solve celebration animation.
-- Expand and curate the Arabic word list.
-- Add difficulty balancing and better puzzle rotation.
-- Improve keyboard ergonomics for Arabic input.
-- Add richer result messaging and polish.
+## Next slice
 
-## Phase 3: Experience Refinement
+**UX hierarchy and flow polish**
 
-- Add settings, accessibility options, and analytics-safe local insights.
-- Add animations, haptics where available, and visual polish.
-- Prepare release configuration and store assets.
+- Refresh the mode-selection screen copy and hierarchy
+- Make the verify flow clearer and more keyboard-friendly
+- Reduce secondary-panel noise on the game screen
+- Add collapsible lower-priority sections on mobile
+- Strengthen emotional feedback on round results
 
-## Phase 4: Multiplayer Play
+## Near-term roadmap
 
-- Add private friend rooms with invite codes.
-- Move multiplayer puzzle generation and scoring to the backend.
-- Sync guesses, room state, and results in real time.
-- Add rematch flow, matchmaking direction, and anti-cheat foundations.
+- Daily mode with deterministic puzzles per date and mode
+- Shareable result summaries
+- Settings for haptics and sound
+- Lightweight local profile layer
+- Segmented stats for endless, daily, and multiplayer tracks
+
+## Later
+
+- App-owned backend interfaces
+- Firebase-backed infrastructure behind those interfaces
+- Guest-first auth with account upgrade
+- Private-room multiplayer v1 with reconnect support
+
+## Exploration
+
+- Renewable content pipeline and silent refresh
+- Optional web input enhancements after launch
+- Public matchmaking, ranked systems, and seasonal layers after private rooms
