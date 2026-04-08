@@ -6,12 +6,14 @@ class _Header extends StatelessWidget {
     required this.playerStats,
     required this.compact,
     required this.dense,
+    required this.keyboardVisible,
   });
 
   final GameSession session;
   final PlayerStats playerStats;
   final bool compact;
   final bool dense;
+  final bool keyboardVisible;
 
   @override
   Widget build(BuildContext context) {
@@ -29,38 +31,43 @@ class _Header extends StatelessWidget {
           textAlign: TextAlign.center,
           style: textTheme.headlineMedium?.copyWith(
             fontWeight: FontWeight.w800,
-            fontSize: dense
+            fontSize: keyboardVisible
+                ? 22
+                : dense
                 ? 24
                 : compact
                 ? 28
                 : 34,
           ),
         ),
-        SizedBox(
-          height: dense
-              ? 2
-              : compact
-              ? 4
-              : 8,
-        ),
-        Text(
-          appNameEnglish,
-          textAlign: TextAlign.center,
-          style: textTheme.titleMedium?.copyWith(
-            color: const Color(0xFF157A6E),
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.4,
+        if (!keyboardVisible) ...[
+          SizedBox(
+            height: dense
+                ? 2
+                : compact
+                ? 4
+                : 8,
           ),
-        ),
-        SizedBox(height: dense ? 4 : 6),
-        Text(
-          appTaglineArabic,
-          textAlign: TextAlign.center,
-          style: (dense ? textTheme.bodySmall : textTheme.bodyMedium)?.copyWith(
-            color: const Color(0xFF5D635F),
-            fontSize: dense ? 11 : null,
+          Text(
+            appNameEnglish,
+            textAlign: TextAlign.center,
+            style: textTheme.titleMedium?.copyWith(
+              color: const Color(0xFF157A6E),
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.4,
+            ),
           ),
-        ),
+          SizedBox(height: dense ? 4 : 6),
+          Text(
+            appTaglineArabic,
+            textAlign: TextAlign.center,
+            style: (dense ? textTheme.bodySmall : textTheme.bodyMedium)
+                ?.copyWith(
+                  color: const Color(0xFF5D635F),
+                  fontSize: dense ? 11 : null,
+                ),
+          ),
+        ],
         SizedBox(height: dense ? 8 : 10),
         Text(
           'الوضع الحالي: ${session.mode.label}',
@@ -112,7 +119,13 @@ class _Header extends StatelessWidget {
             ),
           ),
         ],
-        SizedBox(height: dense ? 4 : 6),
+        SizedBox(
+          height: keyboardVisible
+              ? 2
+              : dense
+              ? 4
+              : 6,
+        ),
         Align(
           alignment: Alignment.center,
           child: TextButton.icon(
@@ -128,7 +141,13 @@ class _Header extends StatelessWidget {
               ? 12
               : 16,
         ),
-        if (stackStats)
+        if (keyboardVisible)
+          _CompactHeaderStats(
+            attemptsRemaining: session.attemptsRemaining.toString(),
+            round: session.round.toString(),
+            totalScore: playerStats.totalScore.toString(),
+          )
+        else if (stackStats)
           Column(
             children: [
               _StatCard(
@@ -183,6 +202,57 @@ class _Header extends StatelessWidget {
             ],
           ),
       ],
+    );
+  }
+}
+
+class _CompactHeaderStats extends StatelessWidget {
+  const _CompactHeaderStats({
+    required this.attemptsRemaining,
+    required this.round,
+    required this.totalScore,
+  });
+
+  final String attemptsRemaining;
+  final String round;
+  final String totalScore;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 8,
+      runSpacing: 8,
+      children: [
+        _CompactHeaderChip(label: 'المتبقي $attemptsRemaining'),
+        _CompactHeaderChip(label: 'الجولة $round'),
+        _CompactHeaderChip(label: 'النقاط $totalScore'),
+      ],
+    );
+  }
+}
+
+class _CompactHeaderChip extends StatelessWidget {
+  const _CompactHeaderChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.84),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFFD9D2C6)),
+      ),
+      child: Text(
+        label,
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w800,
+          color: const Color(0xFF415055),
+        ),
+      ),
     );
   }
 }

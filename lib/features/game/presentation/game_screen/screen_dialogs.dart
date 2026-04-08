@@ -55,7 +55,7 @@ class _RoundResultDialog extends StatelessWidget {
                     Text(
                       isWin
                           ? 'تم حل الجولة ${result.round} خلال ${result.attemptsUsed} محاولة.'
-                          : 'لم تنجح في الجولة ${result.round} هذه المرة.',
+                          : 'اقتربت من الحل، لكن الجولة ${result.round} انتهت هذه المرة.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                         color: const Color(0xFF5D635F),
@@ -104,11 +104,37 @@ class _RoundResultDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      'السلسلة الحالية: ${result.currentStreak}',
+                      isWin
+                          ? 'السلسلة الحالية: ${result.currentStreak}'
+                          : 'استرح قليلاً ثم ابدأ جولة جديدة بإيقاع أفضل.',
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: const Color(0xFF5D635F),
                         fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isWin
+                            ? const Color(0xFFEAF3F0)
+                            : const Color(0xFFFBEDED),
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        isWin
+                            ? 'جولة ناجحة. حافظ على السلسلة أو ارفعها في الجولة التالية.'
+                            : 'كل جولة تضيف خبرة، ويمكنك العودة مباشرة إلى تحد جديد.',
+                        textAlign: TextAlign.center,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
                     const SizedBox(height: 16),

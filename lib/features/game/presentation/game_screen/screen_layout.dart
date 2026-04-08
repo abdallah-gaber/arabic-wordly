@@ -13,6 +13,7 @@ class _GameLayout extends StatelessWidget {
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
     required this.onUseHint,
+    required this.submitButtonKey,
   });
 
   final GameSession session;
@@ -26,12 +27,14 @@ class _GameLayout extends StatelessWidget {
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
+  final GlobalKey submitButtonKey;
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.sizeOf(context);
-    final compact = size.height < 700 || size.width < 640;
-    final dense = size.width < 430 || size.height < 820;
+    final keyboardVisible = MediaQuery.viewInsetsOf(context).bottom > 0;
+    final compact = size.height < 700 || size.width < 640 || keyboardVisible;
+    final dense = size.width < 430 || size.height < 820 || keyboardVisible;
     final layoutProfile = _ModeLayoutProfile.resolve(
       mode: session.mode,
       size: size,
@@ -50,6 +53,7 @@ class _GameLayout extends StatelessWidget {
             playerStats: playerStats,
             compact: compact,
             dense: dense,
+            keyboardVisible: keyboardVisible,
           ),
         ),
         SizedBox(
@@ -87,6 +91,8 @@ class _GameLayout extends StatelessWidget {
                     onSkipPuzzle: onSkipPuzzle,
                     onUseHint: onUseHint,
                     layoutProfile: layoutProfile,
+                    keyboardVisible: keyboardVisible,
+                    submitButtonKey: submitButtonKey,
                   ),
                 ],
               ),

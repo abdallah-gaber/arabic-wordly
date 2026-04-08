@@ -45,6 +45,7 @@ class _GameScreenView extends ConsumerStatefulWidget {
 class _GameScreenState extends ConsumerState<_GameScreenView> {
   late final TextEditingController _guessController;
   late final Timer _hintTimer;
+  final GlobalKey _submitButtonKey = GlobalKey();
   bool _isResultDialogOpen = false;
   bool _wasGuessReady = false;
 
@@ -69,6 +70,20 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     if (mounted) {
       setState(() {
         _wasGuessReady = isReady;
+      });
+    }
+
+    if (MediaQuery.viewInsetsOf(context).bottom > 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final currentContext = _submitButtonKey.currentContext;
+        if (currentContext != null && mounted) {
+          Scrollable.ensureVisible(
+            currentContext,
+            alignment: 1,
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+          );
+        }
       });
     }
   }
@@ -208,6 +223,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     final gameState = ref.watch(gameControllerProvider(widget.mode));
     final playerStats = ref.watch(playerStatsProvider).asData?.value;
     final now = ref.read(clockProvider)();
+    final viewInsets = MediaQuery.viewInsetsOf(context);
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
@@ -251,7 +267,12 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                         child: ConstrainedBox(
                           constraints: const BoxConstraints(maxWidth: 720),
                           child: Padding(
-                            padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                            padding: EdgeInsets.fromLTRB(
+                              16,
+                              16,
+                              16,
+                              20 + viewInsets.bottom,
+                            ),
                             child: _GameLayout(
                               session: viewState.session,
                               playerStats: playerStats ?? const PlayerStats(),
@@ -266,6 +287,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                               onSubmitGuess: _submitGuess,
                               onSkipPuzzle: _skipPuzzle,
                               onUseHint: _useHint,
+                              submitButtonKey: _submitButtonKey,
                             ),
                           ),
                         ),
