@@ -1,3 +1,6 @@
+# Local agent / IDE bundles (not part of the Flutter app)
+everything-claude-code/
+
 # Miscellaneous
 *.class
 *.log

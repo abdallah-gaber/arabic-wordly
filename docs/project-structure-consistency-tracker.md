@@ -23,8 +23,12 @@ This file is the **canonical, Git-tracked** checklist for the “project structu
 | `split-providers` | Extract Riverpod wiring from `game_controller.dart` | **Done** | On `main` (`game_providers.dart`, `main` composition root). |
 | `split-game-screen` | Split `game_screen.dart` into smaller files | **Done** | On `main` (`presentation/game_screen/*.dart` parts). |
 | `test-support` | `test/support/` helpers + migrate widget tests | **Done** | On `main`. |
-| `naming-cleanup` | `HapticsService` vs utility; `game_models` clarity | **In PR** | Branch `chore/naming-cleanup`: `AppHaptics` + `app_haptics.dart`; file doc on `game_models.dart`. |
-| `repo-hygiene` | `everything-claude-code/` ignore / move / document | **Todo** | New branch. |
+| `naming-cleanup` | `HapticsService` vs utility; `game_models` clarity | **Done** | `AppHaptics` in `app_haptics.dart`; `game_models.dart` library doc. |
+| `repo-hygiene` | `everything-claude-code/` ignore / move / document | **In PR** | Branch `chore/repo-hygiene-ignore-local-bundles`: gitignore + README note. |
+
+## Local-only paths (intentionally not tracked)
+
+- **`everything-claude-code/`** — Optional local Cursor/agent tooling tree. Keep it on disk if you use it; it is **gitignored** so clones and CI stay focused on the Flutter app.
 
 ## After each merge
 
