@@ -48,6 +48,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   late final Timer _hintTimer;
   bool _isResultDialogOpen = false;
   bool _wasGuessReady = false;
+  int _invalidGuessFeedbackTick = 0;
 
   void _handleGuessChanged() {
     final sanitized = ArabicWordRules.sanitizeGuessInput(
@@ -103,6 +104,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
   Future<void> _submitGuess() async {
     if (!_isGuessReady) {
+      _triggerInvalidGuessFeedback();
       unawaited(AppHaptics.warning());
       return;
     }
@@ -126,8 +128,19 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       }
       _guessController.clear();
     } else {
+      _triggerInvalidGuessFeedback();
       unawaited(AppHaptics.warning());
     }
+  }
+
+  void _triggerInvalidGuessFeedback() {
+    if (!mounted) {
+      return;
+    }
+
+    setState(() {
+      _invalidGuessFeedbackTick++;
+    });
   }
 
   Future<void> _skipPuzzle() async {
@@ -229,8 +242,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       typingMode: typingMode,
     );
     final bottomContentPadding =
-        20.0 +
-        (showPinnedVerifyBar ? _PinnedVerifyBar.barHeight + 16.0 : 0.0);
+        20.0 + (showPinnedVerifyBar ? _PinnedVerifyBar.barHeight + 16.0 : 0.0);
     ref.listen(gameControllerProvider(widget.mode), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
@@ -291,8 +303,11 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                                     'استمر حتى تصل إلى الإجابة الصحيحة.',
                                 guessController: _guessController,
                                 guessFocusNode: _guessFocusNode,
+                                currentGuess: _guessController.text,
                                 currentLetterCount: _currentLetterCount,
                                 isGuessReady: _isGuessReady,
+                                invalidGuessFeedbackTick:
+                                    _invalidGuessFeedbackTick,
                                 mode: widget.mode,
                                 now: now,
                                 onSubmitGuess: _submitGuess,

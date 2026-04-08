@@ -7,8 +7,10 @@ class _GameLayout extends StatelessWidget {
     required this.feedback,
     required this.guessController,
     required this.guessFocusNode,
+    required this.currentGuess,
     required this.currentLetterCount,
     required this.isGuessReady,
+    required this.invalidGuessFeedbackTick,
     required this.mode,
     required this.now,
     required this.onSubmitGuess,
@@ -23,8 +25,10 @@ class _GameLayout extends StatelessWidget {
   final String feedback;
   final TextEditingController guessController;
   final FocusNode guessFocusNode;
+  final String currentGuess;
   final int currentLetterCount;
   final bool isGuessReady;
+  final int invalidGuessFeedbackTick;
   final GameMode mode;
   final DateTime now;
   final Future<void> Function() onSubmitGuess;
@@ -77,8 +81,10 @@ class _GameLayout extends StatelessWidget {
                 children: [
                   _GuessGrid(
                     session: session,
+                    currentGuess: currentGuess,
                     compact: compact,
                     dense: dense,
+                    invalidGuessFeedbackTick: invalidGuessFeedbackTick,
                     layoutProfile: layoutProfile,
                   ),
                   SizedBox(height: layoutProfile.sectionSpacing),

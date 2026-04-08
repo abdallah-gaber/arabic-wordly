@@ -12,6 +12,7 @@
 - Local score, streaks, skips, solve distribution, and per-mode summaries
 - Mode-aware board and input layout
 - Win/loss dialogs with richer round summaries
+- Mobile typing-mode UX with inline verify, pinned verify above keyboard, and compact focused layout
 - Riverpod architecture with automated coverage across domain, data, and UI
 
 This means the next milestone is not "make single-player real." It is "turn the current baseline into a polished public-ready release, then prepare for daily mode, identity, and multiplayer safely."
@@ -86,29 +87,43 @@ Do not let Firebase types leak into domain, controller, or presentation layers.
 5. Add guest-first auth and optional account upgrade.
 6. Add private-room multiplayer v1.
 
+## Recent progress
+
+### Mobile flow polish
+
+- Added a typing-mode presentation state
+- Moved verify into the composer flow
+- Added a pinned verify action above the keyboard
+- Tightened focused layout density and secondary content
+- Improved mobile tap-to-dismiss and bottom spacing behavior
+
+### Board feedback polish
+
+- Added active-row preview while typing
+- Added invalid active-row shake feedback
+- Strengthened tile reveal rhythm with a staggered reveal feel
+
 ## Next execution slices
 
 ### Next slice
 
-**Focused UX and gameplay refinement**
+**Dialog emotion and early-game guidance**
 
-- Redesign input and verify into a tighter, keyboard-aware interaction
-- Add stronger grid feedback and dialog motion
-- Rebalance the visual role of hints
-- Improve mode-selection emotional pull and hierarchy
-- Reduce early-game harshness without changing the core rules
+- Add more satisfying win/loss motion
+- Improve first-round guidance without trivializing the answer
+- Rebalance hint visibility and support cues
 
 ### Slice after that
 
-**Daily mode and sharing**
+**Daily mode and sharing UI**
 
-- One daily puzzle per mode per date
-- Daily completion stored separately from endless progress
-- Compact share result formatter
-- Daily stats added under a separate track
+- Add the daily entry flow on top of the local daily foundations
+- Wire a real share action using the existing formatter
+- Keep daily progress visually separate from endless mode
 
 ### Later
 
+- Daily mode and sharing UI
 - Settings and local profile layer
 - Backend abstraction and Firebase infrastructure
 - Guest auth with upgrade path

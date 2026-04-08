@@ -6,9 +6,9 @@ Start here for planning and technical context.
 
 | Document | Purpose |
 |----------|---------|
-| [product-roadmap.md](product-roadmap.md) | Current product direction, locked decisions, next slices, and future tracks |
-| [phases.md](phases.md) | Live roadmap status: completed baseline, next slice, near-term roadmap, later, exploration |
-| [architecture.md](architecture.md) | Current layers plus the next evolution for daily mode, backend abstraction, auth, and multiplayer |
+| [product-roadmap.md](product-roadmap.md) | Live product status, completed slices, next slice |
+| [phases.md](phases.md) | Phase-level roadmap and milestone order |
+| [architecture.md](architecture.md) | Layers, naming map, app shell, persistence, game flow |
 | [testing.md](testing.md) | Pre-commit checks, commands, coverage notes |
 | [project-structure-consistency-tracker.md](project-structure-consistency-tracker.md) | Structure/refactor checklist, branch-per-PR workflow, done vs todo |
 

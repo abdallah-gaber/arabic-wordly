@@ -19,12 +19,11 @@
 
 ## Current Roadmap
 
-- Completed baseline: multi-mode single-player, hints, local score/stats, and mode-aware UX
-- Next slice: UX hierarchy and flow polish on the mode-selection and game screens
-- Near term: daily mode, sharing, settings, and lightweight profile
-- Later: backend abstraction, guest auth, and private-room multiplayer
+- Current focus: dialog motion and early-game guidance on top of the completed mobile typing and board-feedback work
+- Near term: daily mode UI, sharing, and lightweight settings/profile
+- Later: settings/profile, backend abstraction, auth, and private-room multiplayer
 
-The live source of truth is [docs/product-roadmap.md](docs/product-roadmap.md), with a compact status view in [docs/phases.md](docs/phases.md).
+More planning details live in [docs/product-roadmap.md](docs/product-roadmap.md) and [docs/phases.md](docs/phases.md).
 
 ## Local Development
 
