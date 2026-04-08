@@ -248,64 +248,68 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       body: Stack(
         children: [
           const Positioned.fill(child: _GameBackground()),
-          SafeArea(
-            child: gameState.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, stackTrace) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Text(
-                    'حدث خطأ أثناء تحميل اللعبة.',
-                    style: Theme.of(context).textTheme.titleLarge,
+          GestureDetector(
+            behavior: HitTestBehavior.translucent,
+            onTap: () => FocusScope.of(context).unfocus(),
+            child: SafeArea(
+              child: gameState.when(
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (error, stackTrace) => Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      'حدث خطأ أثناء تحميل اللعبة.',
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
                   ),
                 ),
-              ),
-              data: (viewState) => LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    padding: EdgeInsets.zero,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        minHeight: constraints.maxHeight,
-                      ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 720),
-                          child: Padding(
-                            padding: EdgeInsets.fromLTRB(
-                              16,
-                              16,
-                              16,
-                              20 +
-                                  viewInsets.bottom +
-                                  (showPinnedVerifyBar
-                                      ? _PinnedVerifyBar.barHeight + 16
-                                      : 0),
-                            ),
-                            child: _GameLayout(
-                              session: viewState.session,
-                              playerStats: playerStats ?? const PlayerStats(),
-                              feedback:
-                                  viewState.feedback ??
-                                  'استمر حتى تصل إلى الإجابة الصحيحة.',
-                              guessController: _guessController,
-                              guessFocusNode: _guessFocusNode,
-                              currentLetterCount: _currentLetterCount,
-                              isGuessReady: _isGuessReady,
-                              mode: widget.mode,
-                              now: now,
-                              onSubmitGuess: _submitGuess,
-                              onSkipPuzzle: _skipPuzzle,
-                              onUseHint: _useHint,
-                              typingMode: typingMode,
-                              showPinnedVerifyBar: showPinnedVerifyBar,
+                data: (viewState) => LayoutBuilder(
+                  builder: (context, constraints) {
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.zero,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          minHeight: constraints.maxHeight,
+                        ),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 720),
+                            child: Padding(
+                              padding: EdgeInsets.fromLTRB(
+                                16,
+                                16,
+                                16,
+                                20 +
+                                    viewInsets.bottom +
+                                    (showPinnedVerifyBar
+                                        ? _PinnedVerifyBar.barHeight + 16
+                                        : 0),
+                              ),
+                              child: _GameLayout(
+                                session: viewState.session,
+                                playerStats: playerStats ?? const PlayerStats(),
+                                feedback:
+                                    viewState.feedback ??
+                                    'استمر حتى تصل إلى الإجابة الصحيحة.',
+                                guessController: _guessController,
+                                guessFocusNode: _guessFocusNode,
+                                currentLetterCount: _currentLetterCount,
+                                isGuessReady: _isGuessReady,
+                                mode: widget.mode,
+                                now: now,
+                                onSubmitGuess: _submitGuess,
+                                onSkipPuzzle: _skipPuzzle,
+                                onUseHint: _useHint,
+                                typingMode: typingMode,
+                                showPinnedVerifyBar: showPinnedVerifyBar,
+                              ),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
             ),
           ),

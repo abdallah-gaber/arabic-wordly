@@ -173,7 +173,6 @@ class _InputSectionState extends State<_InputSection> {
                     RegExp(r'[\u0600-\u06FF]+'),
                   ),
                 ],
-                onTapOutside: (_) => widget.guessFocusNode.unfocus(),
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
