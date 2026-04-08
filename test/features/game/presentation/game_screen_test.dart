@@ -152,6 +152,32 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('tapping outside the field exits typing mode', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.showKeyboard(find.byType(TextField));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+
+      await tester.tap(find.text('المتبقي 6'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsNothing);
+      expect(find.text('5amenha'), findsOneWidget);
+    });
+
     testWidgets(
       'keeps the pinned verify action in sync with input readiness while typing',
       (tester) async {

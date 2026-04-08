@@ -173,6 +173,7 @@ class _InputSectionState extends State<_InputSection> {
                     RegExp(r'[\u0600-\u06FF]+'),
                   ),
                 ],
+                onTapOutside: (_) => widget.guessFocusNode.unfocus(),
                 style: Theme.of(
                   context,
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
@@ -245,13 +246,12 @@ class _InputSectionState extends State<_InputSection> {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton.icon(
-                    onPressed:
-                        widget.isGuessReady ? widget.onSubmitGuess : null,
+                    onPressed: widget.isGuessReady
+                        ? widget.onSubmitGuess
+                        : null,
                     icon: const Icon(Icons.check_circle_outline),
                     label: Text(
-                      widget.isGuessReady
-                          ? 'تحقق الآن'
-                          : 'أكمل الكلمة أولاً',
+                      widget.isGuessReady ? 'تحقق الآن' : 'أكمل الكلمة أولاً',
                     ),
                     style: ElevatedButton.styleFrom(
                       minimumSize: Size.fromHeight(widget.dense ? 50 : 56),

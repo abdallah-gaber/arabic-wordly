@@ -215,9 +215,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     return _guessFocusNode.hasFocus;
   }
 
-  bool _shouldShowPinnedVerifyBar({
-    required bool typingMode,
-  }) {
+  bool _shouldShowPinnedVerifyBar({required bool typingMode}) {
     return typingMode && !kIsWeb;
   }
 
@@ -336,7 +334,7 @@ class _PinnedVerifyBar extends StatelessWidget {
     required this.onSubmitGuess,
   });
 
-  static const double barHeight = 64;
+  static const double barHeight = 72;
 
   final bool isGuessReady;
   final Future<void> Function() onSubmitGuess;
@@ -368,6 +366,14 @@ class _PinnedVerifyBar extends StatelessWidget {
             onPressed: isGuessReady ? onSubmitGuess : null,
             icon: const Icon(Icons.check_circle_outline),
             label: Text(isGuessReady ? 'تحقق الآن' : 'أكمل الكلمة أولاً'),
+            style: ElevatedButton.styleFrom(
+              minimumSize: const Size.fromHeight(barHeight - 16),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              textStyle: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w800,
+                height: 1.2,
+              ),
+            ),
           ),
         ),
       ),
