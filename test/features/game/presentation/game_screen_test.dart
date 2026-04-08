@@ -1,26 +1,26 @@
-import 'dart:math';
-
 import 'package:arabic_wordly/app/app.dart';
-import 'package:arabic_wordly/features/game/data/key_value_store.dart';
-import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
-import 'package:arabic_wordly/features/game/presentation/game_screen.dart';
+import '../../../support/fixed_random.dart';
+import '../../../support/game_test_overrides.dart';
+import '../../../support/in_memory_key_value_store.dart';
+import '../../../support/mutable_clock.dart';
+import '../../../support/widget_test_puzzle_bank.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  final clock = _MutableClock(DateTime(2026, 4, 2, 8));
+  final clock = MutableClock(DateTime(2026, 4, 2, 8));
 
   group('GameScreen', () {
     testWidgets('opens first to mode selection', (tester) async {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            keyValueStoreProvider.overrideWithValue(_InMemoryKeyValueStore()),
-            randomProvider.overrideWithValue(_FixedRandom(0)),
-            puzzleBankProvider.overrideWithValue(_testPuzzleBank),
+            keyValueStoreProvider.overrideWithValue(InMemoryKeyValueStore()),
+            randomProvider.overrideWithValue(FixedRandom(0)),
+            puzzleBankProvider.overrideWithValue(widgetTestPuzzleBank),
             clockProvider.overrideWithValue(clock.call),
           ],
           child: const ArabicWordlyApp(),
@@ -43,9 +43,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedRandom(0),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -64,9 +64,9 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedRandom(0),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
           mode: GameMode.sixLetters,
           clock: clock.call,
         ),
@@ -84,9 +84,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedRandom(0),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
           mode: GameMode.threeLetters,
           clock: clock.call,
         ),
@@ -102,9 +102,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedRandom(0),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -128,9 +128,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedRandom(0),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -160,9 +160,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedRandom(0),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -181,9 +181,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedSequenceRandom([0, 1]),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -212,9 +212,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedSequenceRandom([0, 1]),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -236,9 +236,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedSequenceRandom([0, 1]),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -270,9 +270,9 @@ void main() {
       tester,
     ) async {
       await tester.pumpWidget(
-        _buildGameApp(
-          store: _InMemoryKeyValueStore(),
-          random: _FixedRandom(0),
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
           mode: GameMode.fiveLetters,
           clock: clock.call,
         ),
@@ -295,115 +295,4 @@ void main() {
       );
     });
   });
-}
-
-ProviderScope _buildGameApp({
-  required KeyValueStore store,
-  required Random random,
-  required GameMode mode,
-  required Clock clock,
-}) {
-  return ProviderScope(
-    overrides: [
-      keyValueStoreProvider.overrideWithValue(store),
-      randomProvider.overrideWithValue(random),
-      puzzleBankProvider.overrideWithValue(_testPuzzleBank),
-      clockProvider.overrideWithValue(clock),
-    ],
-    child: MaterialApp(home: GameScreen(mode: mode)),
-  );
-}
-
-final _testPuzzleBank = ArabicPuzzleBank({
-  GameMode.threeLetters: [
-    const ArabicPuzzle(word: 'بيت', category: 'المنزل'),
-    const ArabicPuzzle(word: 'باب', category: 'المنزل'),
-    const ArabicPuzzle(word: 'نور', category: 'الضوء'),
-  ],
-  GameMode.fourLetters: [
-    const ArabicPuzzle(word: 'كتاب', category: 'القراءة'),
-    const ArabicPuzzle(word: 'قهوة', category: 'المشروبات'),
-    const ArabicPuzzle(word: 'وردة', category: 'النباتات'),
-  ],
-  GameMode.fiveLetters: [
-    const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
-    const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
-    const ArabicPuzzle(word: 'مكتبة', category: 'القراءة'),
-  ],
-  GameMode.sixLetters: [
-    const ArabicPuzzle(word: 'سيارات', category: 'المواصلات'),
-    const ArabicPuzzle(word: 'مدارسك', category: 'التعليم'),
-    const ArabicPuzzle(word: 'تفاحات', category: 'الفواكه'),
-  ],
-});
-
-class _InMemoryKeyValueStore implements KeyValueStore {
-  final Map<String, Object> _values = <String, Object>{};
-
-  @override
-  Future<bool?> getBool(String key) async {
-    return _values[key] as bool?;
-  }
-
-  @override
-  Future<String?> getString(String key) async {
-    return _values[key] as String?;
-  }
-
-  @override
-  Future<void> setBool(String key, bool value) async {
-    _values[key] = value;
-  }
-
-  @override
-  Future<void> setString(String key, String value) async {
-    _values[key] = value;
-  }
-}
-
-class _FixedRandom implements Random {
-  _FixedRandom(this._value);
-
-  final int _value;
-
-  @override
-  bool nextBool() => false;
-
-  @override
-  double nextDouble() => 0;
-
-  @override
-  int nextInt(int max) => _value % max;
-}
-
-class _FixedSequenceRandom implements Random {
-  _FixedSequenceRandom(this._values);
-
-  final List<int> _values;
-  int _index = 0;
-
-  @override
-  bool nextBool() => false;
-
-  @override
-  double nextDouble() => 0;
-
-  @override
-  int nextInt(int max) {
-    final value = _values[_index % _values.length] % max;
-    _index += 1;
-    return value;
-  }
-}
-
-class _MutableClock {
-  _MutableClock(this._now);
-
-  DateTime _now;
-
-  DateTime call() => _now;
-
-  void set(DateTime value) {
-    _now = value;
-  }
 }

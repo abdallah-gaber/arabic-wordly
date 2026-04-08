@@ -1,10 +1,9 @@
-import 'dart:math';
-
 import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
-import 'package:arabic_wordly/features/game/data/key_value_store.dart';
 import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
+import '../../../support/fixed_random.dart';
+import '../../../support/in_memory_key_value_store.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -13,14 +12,14 @@ void main() {
   group('GameLocalRepository', () {
     test('creates a new session for a first-time player', () async {
       final repository = GameLocalRepository(
-        store: _InMemoryKeyValueStore(),
+        store: InMemoryKeyValueStore(),
         puzzleBank: ArabicPuzzleBank({
           GameMode.fiveLetters: [
             const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
             const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
           ],
         }),
-        random: _FixedRandom(0),
+        random: FixedRandom(0),
         now: () => fixedNow,
       );
 
@@ -40,7 +39,7 @@ void main() {
     });
 
     test('restores an active cached session when available', () async {
-      final store = _InMemoryKeyValueStore();
+      final store = InMemoryKeyValueStore();
       final repository = GameLocalRepository(
         store: store,
         puzzleBank: ArabicPuzzleBank({
@@ -49,7 +48,7 @@ void main() {
             const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
           ],
         }),
-        random: _FixedRandom(1),
+        random: FixedRandom(1),
         now: () => fixedNow,
       );
 
@@ -70,7 +69,7 @@ void main() {
     test(
       'restores a completed cached session until the user advances',
       () async {
-        final store = _InMemoryKeyValueStore();
+        final store = InMemoryKeyValueStore();
         final repository = GameLocalRepository(
           store: store,
           puzzleBank: ArabicPuzzleBank({
@@ -79,7 +78,7 @@ void main() {
               const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
             ],
           }),
-          random: _FixedRandom(1),
+          random: FixedRandom(1),
           now: () => fixedNow,
         );
 
@@ -106,14 +105,14 @@ void main() {
       'creates a different next session when excluding the previous answer',
       () async {
         final repository = GameLocalRepository(
-          store: _InMemoryKeyValueStore(),
+          store: InMemoryKeyValueStore(),
           puzzleBank: ArabicPuzzleBank({
             GameMode.fiveLetters: [
               const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
               const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
             ],
           }),
-          random: _FixedRandom(0),
+          random: FixedRandom(0),
           now: () => fixedNow,
         );
 
@@ -131,7 +130,7 @@ void main() {
 
     test('stores and restores sessions independently per mode', () async {
       final repository = GameLocalRepository(
-        store: _InMemoryKeyValueStore(),
+        store: InMemoryKeyValueStore(),
         puzzleBank: ArabicPuzzleBank({
           GameMode.threeLetters: [
             const ArabicPuzzle(word: 'بيت', category: 'المنزل'),
@@ -142,7 +141,7 @@ void main() {
             const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
           ],
         }),
-        random: _FixedRandom(0),
+        random: FixedRandom(0),
         now: () => fixedNow,
       );
 
@@ -180,14 +179,14 @@ void main() {
 
     test('restores saved hint progress for a cached session', () async {
       final repository = GameLocalRepository(
-        store: _InMemoryKeyValueStore(),
+        store: InMemoryKeyValueStore(),
         puzzleBank: ArabicPuzzleBank({
           GameMode.fiveLetters: [
             const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
             const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
           ],
         }),
-        random: _FixedRandom(0),
+        random: FixedRandom(0),
         now: () => fixedNow,
       );
 
@@ -218,7 +217,7 @@ void main() {
     });
 
     test('backfills category for older cached sessions missing it', () async {
-      final store = _InMemoryKeyValueStore();
+      final store = InMemoryKeyValueStore();
       final repository = GameLocalRepository(
         store: store,
         puzzleBank: ArabicPuzzleBank({
@@ -227,7 +226,7 @@ void main() {
             const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
           ],
         }),
-        random: _FixedRandom(0),
+        random: FixedRandom(0),
         now: () => fixedNow,
       );
 
@@ -245,13 +244,13 @@ void main() {
 
     test('stores and restores player stats', () async {
       final repository = GameLocalRepository(
-        store: _InMemoryKeyValueStore(),
+        store: InMemoryKeyValueStore(),
         puzzleBank: ArabicPuzzleBank({
           GameMode.fiveLetters: [
             const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
           ],
         }),
-        random: _FixedRandom(0),
+        random: FixedRandom(0),
         now: () => fixedNow,
       );
 
@@ -275,43 +274,4 @@ void main() {
       expect(restored.totalSolveTimeSeconds, 42);
     });
   });
-}
-
-class _InMemoryKeyValueStore implements KeyValueStore {
-  final Map<String, Object> _values = <String, Object>{};
-
-  @override
-  Future<bool?> getBool(String key) async {
-    return _values[key] as bool?;
-  }
-
-  @override
-  Future<String?> getString(String key) async {
-    return _values[key] as String?;
-  }
-
-  @override
-  Future<void> setBool(String key, bool value) async {
-    _values[key] = value;
-  }
-
-  @override
-  Future<void> setString(String key, String value) async {
-    _values[key] = value;
-  }
-}
-
-class _FixedRandom implements Random {
-  _FixedRandom(this._value);
-
-  final int _value;
-
-  @override
-  bool nextBool() => false;
-
-  @override
-  double nextDouble() => 0;
-
-  @override
-  int nextInt(int max) => _value % max;
 }

@@ -32,6 +32,18 @@ When changing these areas, extend or run tests that cover:
 - **Score and stats** — `PlayerStats` / score rules, persistence via `GameLocalRepository`, invalidation when rounds complete or skip.
 - **Puzzle bank** — Minimum word counts per mode; distinct-form words where required.
 
-## Shared test setup (convention)
+## Shared test helpers (`test/support/`)
 
-Widget and integration-style tests often use the same Riverpod overrides (`keyValueStoreProvider`, `randomProvider`, `puzzleBankProvider`, `clockProvider`). When adding new tests, **mirror the overrides** from existing files until a shared `test/support/` helper library is introduced; then migrate new tests to use the shared helpers first.
+Reuse these instead of duplicating fakes in each file:
+
+| File | Purpose |
+|------|---------|
+| [`in_memory_key_value_store.dart`](../test/support/in_memory_key_value_store.dart) | `KeyValueStore` fake for persistence tests and widget overrides |
+| [`fixed_random.dart`](../test/support/fixed_random.dart) | `FixedRandom`, `FixedSequenceRandom` for deterministic `Random` |
+| [`mutable_clock.dart`](../test/support/mutable_clock.dart) | Mutable time source for `clockProvider` overrides |
+| [`widget_test_puzzle_bank.dart`](../test/support/widget_test_puzzle_bank.dart) | Curated `ArabicPuzzleBank` for game widget tests |
+| [`game_test_overrides.dart`](../test/support/game_test_overrides.dart) | `gameScreenTestApp(...)` — `ProviderScope` + `MaterialApp` around `GameScreen` with standard overrides |
+
+**Convention:** New widget tests that drive `GameScreen` should call `gameScreenTestApp` (and the shared bank) unless a custom bank or scope is required. Repository unit tests should use `InMemoryKeyValueStore` and `FixedRandom` from this folder.
+
+**Imports:** Helpers live under `test/`, not `lib/`, so import them with **relative** paths (for example `import '../../../support/in_memory_key_value_store.dart';` from `test/features/game/data/`), not `package:arabic_wordly/test/...`.
