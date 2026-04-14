@@ -39,6 +39,11 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 - [ ] **UI:** Expand the End Game summary dialog to showcase this 'Educational Fact' cleanly.
 - [ ] **Tests (Widget):** Verify the definition text populates correctly on win/loss states.
 
+#### S5: Image Share for Help & Results
+**Goal:** Generate and share an elegant branded screenshot (including game name, icon, puzzle, category, and status) instead of just emoji text. Allow "Share to get help" if stuck.
+- [ ] **Domain/UI:** Integrate a widget-to-image package (or use `RepaintBoundary`) to capture a custom off-screen widget containing all relevant data cleanly formatted.
+- [ ] **Tests (Unit):** Ensure screenshot saving logic caches file to temporary directory before sharing.
+
 ---
 
 ### 2. 🎨 UI / Visual Upgrade
