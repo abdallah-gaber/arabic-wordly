@@ -1,9 +1,10 @@
 part of 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 
 class _RoundResultDialog extends StatelessWidget {
-  const _RoundResultDialog({required this.result});
+  const _RoundResultDialog({required this.result, required this.session});
 
   final RoundResult result;
+  final GameSession session;
 
   @override
   Widget build(BuildContext context) {
@@ -153,6 +154,29 @@ class _RoundResultDialog extends StatelessWidget {
                                 ),
                                 label: Text(
                                   isWin ? 'التالي' : 'جرب لغزاً جديداً',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final text = ShareResultFormatter.formatCompletedRound(
+                                    track: GameTrack.endless,
+                                    mode: session.mode,
+                                    answer: session.answer,
+                                    guesses: session.guesses,
+                                  );
+                                  final box = context.findRenderObject() as RenderBox?;
+                                  final rect = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+                                  await Share.share(text, sharePositionOrigin: rect);
+                                },
+                                icon: const Icon(Icons.ios_share_rounded),
+                                label: const Text('مشاركة النتيجة'),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: accent.withValues(alpha: 0.65)),
+                                  foregroundColor: color,
                                 ),
                               ),
                             ),

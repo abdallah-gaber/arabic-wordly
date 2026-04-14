@@ -9,6 +9,8 @@ import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
+import 'package:arabic_wordly/features/game/domain/share_result_formatter.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -174,7 +176,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     }
   }
 
-  Future<void> _showRoundResultDialog(RoundResult result) async {
+  Future<void> _showRoundResultDialog(RoundResult result, GameSession session) async {
     if (_isResultDialogOpen || !mounted) {
       return;
     }
@@ -188,7 +190,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       barrierColor: Colors.black.withValues(alpha: 0.28),
       transitionDuration: const Duration(milliseconds: 280),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return _RoundResultDialog(result: result);
+        return _RoundResultDialog(result: result, session: session);
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final curve = CurvedAnimation(
@@ -253,7 +255,10 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
               : AppHaptics.failure(),
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showRoundResultDialog(nextResult);
+          final nextSession = next.asData?.value.session;
+          if (nextSession != null) {
+            _showRoundResultDialog(nextResult, nextSession);
+          }
         });
       }
     });
