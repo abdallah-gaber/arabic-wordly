@@ -55,8 +55,8 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 
 #### U2: Streak Fire Badge In-Game
 **Goal:** Highlight the streak counter with 🔥 during gameplay.
-- [ ] **UI Design:** Place an animated streak badge (using implicitly animated widgets) in the game top app bar or hero layout area.
-- [ ] **Tests (Widget):** Inject mock `PlayerStats` with an active streak > 0 and verify the badge appears.
+- [x] **UI Design:** Place an animated streak badge (using implicitly animated widgets) in the game top app bar or hero layout area.
+- [x] **Tests (Widget):** Inject mock `PlayerStats` with an active streak > 0 and verify the badge appears.
 
 #### U3: Mode Selection Redesign
 **Goal:** Replace vertical scrolling with horizontal swipe cards for modes.
