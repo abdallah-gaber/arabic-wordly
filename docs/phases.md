@@ -1,39 +1,28 @@
-# Delivery phases
+# 5amenha Development Phases
 
-## Completed baseline
+This project execution is now broken down into 5 formal phases. Every phase execution follows the strict rules outlined in `ROADMAP_RULES.md`.
 
-- Playable offline-first Arabic word game for Android, iOS, and web
-- 3 / 4 / 5 / 6-letter endless modes
-- Per-mode cached sessions
-- Visible categories and cooldown-based hints
-- Score, streaks, skips, and local stats
-- Richer result dialogs and mobile typing-flow polish
-- Active-row preview, rejected-submit shake feedback, and stronger board feedback
-- Stronger win/loss dialog emotion and result hierarchy
+## Execution Rules
+> [!IMPORTANT]
+> **Before starting work on any phase**, ensure you comply with the guidelines defined here:
+> [👉 Read Execution Rules (ROADMAP_RULES.md)](./ROADMAP_RULES.md)
 
-## Next slice
+## Phases List
 
-- Early-game guidance and hint-balance refinement
-- Daily mode UI entry and share-action wiring
-- Keep support systems helpful without competing with the main board
+- **[Phase 0: Foundation (الأساس)](./phase-0-foundation.md)**
+  _Status: 🚧 Current_ | Stabilize solo play before any new features.
 
-## Near-term roadmap
+- **[Phase 1: Growth & Virality (الانتشار)](./phase-1-growth.md)**
+  _Status: ⏭ Next_ | Organic growth tools — make the game shareable.
 
-- Dialog emotion polish
-- Early-game guidance and hint-balance refinement
-- Daily mode UI and share action wiring
-- Settings and lightweight local profile layer
+- **[Phase 2: Retention & Depth (الاحتفاظ)](./phase-2-retention.md)**
+  _Status: 📋 Planned_ | Keep players coming back daily.
 
-## Later
+- **[Phase 3: Auth & Backend (الحسابات)](./phase-3-auth.md)**
+  _Status: 📋 Planned_ | Required infrastructure before any multiplayer.
 
-- Backend abstraction interfaces
-- Firebase infrastructure behind app-owned contracts
-- Guest-first auth with upgrade path
-- Private-room multiplayer v1
+- **[Phase 4: Multiplayer & Social (التعدد)](./phase-4-multiplayer.md)**
+  _Status: 🔮 Future_ | Requires P3 complete. High effort, high reward.
 
-## Exploration
-
-- Remote JSON dataset refresh
-- Content replenishment pipeline
-- Category-aware sourcing and deduplication
-- Public matchmaking only after private rooms prove out
+---
+_Note: For the older historical phases that shaped the early product implementation, see the `archive/` folder._
