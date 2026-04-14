@@ -15,8 +15,8 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 **Goal:** Allow users to copy a Wordle-style colored emoji grid (🟩🟨⬜) after solving.
 - [x] **Domain:** Create `ResultGridFormatter` service to parse game state (attempts vs correct word) to appropriate emojis.
 - [x] **Tests (Unit):** Ensure `ResultGridFormatter` returns valid emoji strings for various game states (perfect win, multi-attempt win, loss).
-- [ ] **UI:** Add a "Share" floating action button or icon to the End Game dialog. Utilize `share_plus` or clipboard APIs to copy text.
-- [ ] **Tests (Widget):** Mock clipboard copy and ensure tapping "Share" dispatches correct data.
+- [x] **UI:** Add a "Share" floating action button or icon to the End Game dialog. Utilize `share_plus` or clipboard APIs to copy text.
+- [x] **Tests (Widget):** Mock clipboard copy and ensure tapping "Share" dispatches correct data.
 
 #### S2: Daily Challenge Mode
 **Goal:** One shared word per day, identical for all users.
