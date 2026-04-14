@@ -488,5 +488,39 @@ void main() {
         );
       },
     );
+
+    testWidgets('shows the 🔥 streak badge only when streak > 0', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(800, 800)); // Non-compact layout
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]), // answers: حديقة -> مكتبة
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Streak starts at 0 -> no fire badge.
+      expect(find.text('🔥'), findsNothing);
+
+      // Solve first puzzle.
+      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tester.pumpAndSettle();
+
+      // Tap Next to begin puzzle #2.
+      await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
+      await tester.pumpAndSettle();
+
+      // Streak is now 1 -> fire badge is visible.
+      expect(find.text('🔥'), findsOneWidget);
+    });
   });
 }

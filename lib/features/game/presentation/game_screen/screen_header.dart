@@ -301,7 +301,7 @@ class _ProgressStatsCard extends StatelessWidget {
         runSpacing: 10,
         children: [
           _MiniMetric(label: 'النقاط', value: '$totalScore', dense: dense),
-          _MiniMetric(label: 'السلسلة', value: '$currentStreak', dense: dense),
+          _StreakFireBadge(streak: currentStreak, dense: dense),
           _MiniMetric(
             label: compact ? 'حل هذا الوضع' : 'تم حل هذا الوضع',
             value: '$solvedForMode',
@@ -348,6 +348,78 @@ class _MiniMetric extends StatelessWidget {
                         ? Theme.of(context).textTheme.bodySmall
                         : Theme.of(context).textTheme.bodyMedium)
                     ?.copyWith(color: const Color(0xFF5D635F)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _StreakFireBadge extends StatelessWidget {
+  const _StreakFireBadge({
+    required this.streak,
+    required this.dense,
+  });
+
+  final int streak;
+  final bool dense;
+
+  @override
+  Widget build(BuildContext context) {
+    if (streak <= 0) {
+      return _MiniMetric(label: 'السلسلة', value: '0', dense: dense);
+    }
+    return ConstrainedBox(
+      constraints: BoxConstraints(minWidth: dense ? 76 : 88),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 340),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            curve: Curves.elasticOut,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF7ED),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFFE0B2)),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFFFF8A00).withValues(alpha: 0.16),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  '🔥',
+                  style: TextStyle(fontSize: dense ? 16 : 20),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '$streak',
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: const Color(0xFFE65100),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'السلسلة',
+            textAlign: TextAlign.center,
+            style: (dense
+                    ? Theme.of(context).textTheme.bodySmall
+                    : Theme.of(context).textTheme.bodyMedium)
+                ?.copyWith(
+              color: const Color(0xFFE65100),
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ],
       ),
