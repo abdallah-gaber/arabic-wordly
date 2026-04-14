@@ -331,23 +331,17 @@ class _GuessTileState extends State<_GuessTile>
             color: backgroundColor,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: borderColor),
-            boxShadow: widget.match == null
-                ? widget.isActive
-                      ? [
-                          BoxShadow(
-                            color: const Color(0x1F157A6E),
-                            blurRadius: 14,
-                            offset: const Offset(0, 6),
-                          ),
-                        ]
-                      : null
-                : [
-                    BoxShadow(
-                      color: backgroundColor.withValues(alpha: 0.18),
-                      blurRadius: 16,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
+            boxShadow: [
+              BoxShadow(
+                color: widget.match != null
+                    ? backgroundColor.withValues(alpha: 0.22)
+                    : widget.isActive
+                        ? const Color(0x1F157A6E)
+                        : Colors.black.withValues(alpha: 0.05),
+                blurRadius: widget.match != null ? 14 : (widget.isActive ? 12 : 6),
+                offset: Offset(0, widget.match != null ? 6 : (widget.isActive ? 6 : 2)),
+              ),
+            ],
           ),
           child: Center(
             child: AnimatedSwitcher(

@@ -50,8 +50,8 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 
 #### U1: Tile Depth & Shadow
 **Goal:** Add tactile depth via subtle shadows on tiles.
-- [ ] **UI Design:** Update the core `TileWidget`. Add a subtle `BoxShadow` based on the status of the tile (empty, filled, correct, absent, present).
-- [ ] **Tests (Widget):** Golden test or property check that the correct shadow is rendered per tile state.
+- [x] **UI Design:** Update the core `TileWidget`. Add a subtle `BoxShadow` based on the status of the tile (empty, filled, correct, absent, present).
+- [x] **Tests (Widget):** Golden test or property check that the correct shadow is rendered per tile state.
 
 #### U2: Streak Fire Badge In-Game
 **Goal:** Highlight the streak counter with 🔥 during gameplay.
