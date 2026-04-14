@@ -60,13 +60,13 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 
 #### U3: Mode Selection Redesign
 **Goal:** Replace vertical scrolling with horizontal swipe cards for modes.
-- [ ] **UI Design:** Implement a generic `PageView` or unconstrained `ListView(scrollDirection: Axis.horizontal)` for `ModeSelectionScreen`. Refactor `ModeCard` components to behave securely in a horizontal plane.
-- [ ] **Tests (Widget):** Swipe right/left gestures verify the mode selection updates.
+- [x] **UI Design:** Implement a generic `PageView` or unconstrained `ListView(scrollDirection: Axis.horizontal)` for `ModeSelectionScreen`. Refactor `ModeCard` components to behave securely in a horizontal plane.
+- [x] **Tests (Widget):** Swipe right/left gestures verify the mode selection updates.
 
 #### U4: Rename Mode Labels
 **Goal:** Update technical mode names to feeling-based names ('⚡ سريع' / '⚖️ متوازن' / '🧠 تحدي').
-- [ ] **Domain/UI:** Update the localization or string constants mapping enum values (e.g., `GameMode.threeLetter` -> '⚡ سريع').
-- [ ] **Tests (Unit):** Validate the String extension/mapper maps correctly.
+- [x] **Domain/UI:** Update the localization or string constants mapping enum values (e.g., `GameMode.threeLetter` -> '⚡ سريع').
+- [x] **Tests (Unit):** Validate the String extension/mapper maps correctly.
 
 ---
 

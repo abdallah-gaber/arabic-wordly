@@ -30,10 +30,15 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
-      expect(find.text('3 أحرف'), findsOneWidget);
-      expect(find.text('4 أحرف'), findsOneWidget);
-      expect(find.text('5 أحرف'), findsOneWidget);
-      expect(find.text('6 أحرف'), findsOneWidget);
+      // Since it's a PageView centered on page 2 (5 letters), the adjacent pages (4, 6) will be rendered.
+      expect(find.text('⚖️ متوازن'), findsOneWidget);
+      expect(find.text('🧠 كلاسيكي'), findsOneWidget);
+      expect(find.text('🔥 تحدي'), findsOneWidget);
+
+      // Swipe right to reveal 3 letters
+      await tester.drag(find.text('🧠 كلاسيكي'), const Offset(400, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('⚡ سريع'), findsOneWidget);
     });
 
     testWidgets('fits on a phone-sized viewport without layout overflow', (
@@ -74,7 +79,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('الوضع الحالي: 6 أحرف'), findsOneWidget);
+      expect(find.text('الوضع الحالي: 🔥 تحدي'), findsOneWidget);
       expect(find.text('ابدأ التخمين'), findsOneWidget);
       expect(find.text('0 / 6'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -94,7 +99,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('الوضع الحالي: 3 أحرف'), findsOneWidget);
+      expect(find.text('الوضع الحالي: ⚡ سريع'), findsOneWidget);
       expect(find.text('0 / 3'), findsOneWidget);
     });
 

@@ -88,7 +88,12 @@ enum GameMode {
     GameMode.sixLetters => '6',
   };
 
-  String get label => '$wordLength أحرف';
+  String get label => switch (this) {
+    GameMode.threeLetters => '⚡ سريع',
+    GameMode.fourLetters => '⚖️ متوازن',
+    GameMode.fiveLetters => '🧠 كلاسيكي',
+    GameMode.sixLetters => '🔥 تحدي',
+  };
 
   String get description => switch (this) {
     GameMode.threeLetters => 'سريع وخفيف للبدايات.',

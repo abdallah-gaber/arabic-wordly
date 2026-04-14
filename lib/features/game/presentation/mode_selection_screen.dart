@@ -40,50 +40,7 @@ class ModeSelectionScreen extends ConsumerWidget {
                                 stats: playerStats ?? const PlayerStats(),
                               ),
                               const SizedBox(height: 26),
-                              LayoutBuilder(
-                                builder: (context, innerConstraints) {
-                                  final crossAxisCount =
-                                      innerConstraints.maxWidth >= 640 ? 2 : 1;
-                                  final compactCard =
-                                      crossAxisCount == 1 &&
-                                      innerConstraints.maxWidth < 420;
-                                  return GridView.builder(
-                                    shrinkWrap: true,
-                                    itemCount: GameMode.values.length,
-                                    physics:
-                                        const NeverScrollableScrollPhysics(),
-                                    gridDelegate:
-                                        SliverGridDelegateWithFixedCrossAxisCount(
-                                          crossAxisCount: crossAxisCount,
-                                          childAspectRatio: crossAxisCount == 2
-                                              ? 1.22
-                                              : compactCard
-                                              ? 1.36
-                                              : 1.52,
-                                          mainAxisSpacing: 14,
-                                          crossAxisSpacing: 14,
-                                        ),
-                                    itemBuilder: (context, index) {
-                                      final mode = GameMode.values[index];
-                                      return _ModeCard(
-                                        compact: compactCard,
-                                        mode: mode,
-                                        stats:
-                                            playerStats?.statsForMode(mode) ??
-                                            ModeStats(mode: mode),
-                                        onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute<void>(
-                                              builder: (_) =>
-                                                  GameScreen(mode: mode),
-                                            ),
-                                          );
-                                        },
-                                      );
-                                    },
-                                  );
-                                },
-                              ),
+                              _ModeCarousel(playerStats: playerStats),
                               const SizedBox(height: 22),
                               Container(
                                 padding: const EdgeInsets.all(16),
@@ -115,6 +72,105 @@ class ModeSelectionScreen extends ConsumerWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ModeCarousel extends StatefulWidget {
+  const _ModeCarousel({required this.playerStats});
+  final PlayerStats? playerStats;
+
+  @override
+  State<_ModeCarousel> createState() => _ModeCarouselState();
+}
+
+class _ModeCarouselState extends State<_ModeCarousel> {
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(viewportFraction: 0.85, initialPage: 2); // default to 5 letters
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 640;
+        final compactCard = constraints.maxWidth < 420;
+        
+        if (isWide && _pageController.viewportFraction != 0.45) {
+          _pageController.dispose();
+          _pageController = PageController(viewportFraction: 0.45, initialPage: 2);
+        } else if (!isWide && _pageController.viewportFraction != 0.85) {
+          _pageController.dispose();
+          _pageController = PageController(viewportFraction: 0.85, initialPage: 2);
+        }
+
+        return SizedBox(
+          height: compactCard ? 245 : 270,
+          child: PageView.builder(
+            controller: _pageController,
+            clipBehavior: Clip.none,
+            physics: const BouncingScrollPhysics(),
+            itemCount: GameMode.values.length,
+            itemBuilder: (context, index) {
+              final mode = GameMode.values[index];
+              return AnimatedBuilder(
+                animation: _pageController,
+                builder: (context, child) {
+                  double pageOffset = 0;
+                  if (_pageController.position.haveDimensions) {
+                    pageOffset = (_pageController.page ?? _pageController.initialPage.toDouble()) - index;
+                  } else {
+                    pageOffset = _pageController.initialPage.toDouble() - index;
+                  }
+                  final scale = (1 - (pageOffset.abs() * 0.1)).clamp(0.9, 1.0);
+                  final opacity = (1 - (pageOffset.abs() * 0.3)).clamp(0.5, 1.0);
+
+                  return Transform.scale(
+                    scale: scale,
+                    child: Opacity(
+                      opacity: opacity,
+                      child: child,
+                    ),
+                  );
+                },
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+                  child: _ModeCard(
+                    compact: compactCard,
+                    mode: mode,
+                    stats: widget.playerStats?.statsForMode(mode) ?? ModeStats(mode: mode),
+                    onTap: () {
+                      if (_pageController.page?.round() != index) {
+                        _pageController.animateToPage(
+                          index,
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeOutCubic,
+                        );
+                      } else {
+                        Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) => GameScreen(mode: mode),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
