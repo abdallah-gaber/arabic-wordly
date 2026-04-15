@@ -2,6 +2,7 @@ import 'package:arabic_wordly/features/game/application/game_providers.dart';
 import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
+import 'package:arabic_wordly/features/game/domain/daily_mode_repository.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -38,7 +39,10 @@ class GameController extends AsyncNotifier<GameViewState> {
   Future<GameSession> _loadSession() async {
     if (track == GameTrack.daily) {
       final dailyRepo = ref.read(dailyModeRepositoryProvider);
-      final dailyProgress = await dailyRepo.restoreProgress(mode: mode, date: _now);
+      final dailyProgress = await dailyRepo.restoreProgress(
+        mode: mode,
+        date: _now,
+      );
       if (dailyProgress != null) {
         return _toSession(dailyProgress);
       }
@@ -48,6 +52,8 @@ class GameController extends AsyncNotifier<GameViewState> {
         mode: mode,
         answer: todayPuzzle.answer,
         category: todayPuzzle.category,
+        guesses: const [],
+        revealedHintIndexes: const [],
         startedAtEpochMs: _now.millisecondsSinceEpoch,
       );
     } else {
@@ -71,7 +77,8 @@ class GameController extends AsyncNotifier<GameViewState> {
   Future<void> _saveSession(GameSession session) async {
     if (track == GameTrack.daily) {
       final dailyRepo = ref.read(dailyModeRepositoryProvider);
-      final dateKey = '${_now.year}-${_now.month.toString().padLeft(2, '0')}-${_now.day.toString().padLeft(2, '0')}';
+      final dateKey =
+          '${_now.year}-${_now.month.toString().padLeft(2, '0')}-${_now.day.toString().padLeft(2, '0')}';
       await dailyRepo.saveProgress(
         DailyProgress(
           mode: session.mode,
@@ -144,6 +151,9 @@ class GameController extends AsyncNotifier<GameViewState> {
           nextSession = nextSession.copyWith(completionPoints: pointsEarned);
           await _saveSession(nextSession);
           await _repository.saveStats(updatedStats);
+          await ref
+              .read(notificationServiceProvider)
+              .scheduleDailyStreakReminder(lastActiveAt: _now);
           ref.invalidate(playerStatsProvider);
           state = AsyncData(
             current.copyWith(
@@ -165,6 +175,9 @@ class GameController extends AsyncNotifier<GameViewState> {
           );
           await _saveSession(nextSession);
           await _repository.saveStats(updatedStats);
+          await ref
+              .read(notificationServiceProvider)
+              .scheduleDailyStreakReminder(lastActiveAt: _now);
           ref.invalidate(playerStatsProvider);
           state = AsyncData(
             current.copyWith(
@@ -273,6 +286,9 @@ class GameController extends AsyncNotifier<GameViewState> {
         pointsEarned: 0,
       );
       await _repository.saveStats(updatedStats);
+      await ref
+          .read(notificationServiceProvider)
+          .scheduleDailyStreakReminder(lastActiveAt: _now);
       ref.invalidate(playerStatsProvider);
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,

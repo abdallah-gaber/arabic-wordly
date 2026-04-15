@@ -92,7 +92,10 @@ class _ModeCarouselState extends State<_ModeCarousel> {
   @override
   void initState() {
     super.initState();
-    _pageController = PageController(viewportFraction: 0.85, initialPage: 2); // default to 5 letters
+    _pageController = PageController(
+      viewportFraction: 0.85,
+      initialPage: 2,
+    ); // default to 5 letters
   }
 
   @override
@@ -107,13 +110,19 @@ class _ModeCarouselState extends State<_ModeCarousel> {
       builder: (context, constraints) {
         final isWide = constraints.maxWidth >= 640;
         final compactCard = constraints.maxWidth < 420;
-        
+
         if (isWide && _pageController.viewportFraction != 0.45) {
           _pageController.dispose();
-          _pageController = PageController(viewportFraction: 0.45, initialPage: 2);
+          _pageController = PageController(
+            viewportFraction: 0.45,
+            initialPage: 2,
+          );
         } else if (!isWide && _pageController.viewportFraction != 0.85) {
           _pageController.dispose();
-          _pageController = PageController(viewportFraction: 0.85, initialPage: 2);
+          _pageController = PageController(
+            viewportFraction: 0.85,
+            initialPage: 2,
+          );
         }
 
         return SizedBox(
@@ -130,27 +139,35 @@ class _ModeCarouselState extends State<_ModeCarousel> {
                 builder: (context, child) {
                   double pageOffset = 0;
                   if (_pageController.position.haveDimensions) {
-                    pageOffset = (_pageController.page ?? _pageController.initialPage.toDouble()) - index;
+                    pageOffset =
+                        (_pageController.page ??
+                            _pageController.initialPage.toDouble()) -
+                        index;
                   } else {
                     pageOffset = _pageController.initialPage.toDouble() - index;
                   }
                   final scale = (1 - (pageOffset.abs() * 0.1)).clamp(0.9, 1.0);
-                  final opacity = (1 - (pageOffset.abs() * 0.3)).clamp(0.5, 1.0);
+                  final opacity = (1 - (pageOffset.abs() * 0.3)).clamp(
+                    0.5,
+                    1.0,
+                  );
 
                   return Transform.scale(
                     scale: scale,
-                    child: Opacity(
-                      opacity: opacity,
-                      child: child,
-                    ),
+                    child: Opacity(opacity: opacity, child: child),
                   );
                 },
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 8.0),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 4.0,
+                    vertical: 8.0,
+                  ),
                   child: _ModeCard(
                     compact: compactCard,
                     mode: mode,
-                    stats: widget.playerStats?.statsForMode(mode) ?? ModeStats(mode: mode),
+                    stats:
+                        widget.playerStats?.statsForMode(mode) ??
+                        ModeStats(mode: mode),
                     onTap: () {
                       if (_pageController.page?.round() != index) {
                         _pageController.animateToPage(
@@ -592,58 +609,149 @@ class _DailyChallengeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: () {
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => const GameScreen(
-              mode: GameMode.fiveLetters,
-              track: GameTrack.daily,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => const GameScreen(
+                mode: GameMode.fiveLetters,
+                track: GameTrack.daily,
+              ),
             ),
+          );
+        },
+        borderRadius: BorderRadius.circular(24),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0E4B44), Color(0xFF157A6E), Color(0xFF1D8E7E)],
+              begin: Alignment.topRight,
+              end: Alignment.bottomLeft,
+            ),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFDDB86A), width: 1.4),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0E4B44).withValues(alpha: 0.26),
+                blurRadius: 26,
+                offset: const Offset(0, 12),
+              ),
+            ],
           ),
-        );
-      },
-      borderRadius: BorderRadius.circular(20),
-      child: Ink(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF157A6E),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF157A6E).withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.today_rounded, color: Colors.white, size: 36),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'التحدي اليومي',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                        ),
+          child: Stack(
+            children: [
+              Positioned(
+                top: -26,
+                left: -20,
+                child: Container(
+                  width: 108,
+                  height: 108,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x33FFE6A8), Color(0x00FFFFFF)],
+                    ),
                   ),
-                  Text(
-                    'كلمة مشتركة للجميع، مرة يومياً.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Colors.white.withValues(alpha: 0.85),
+                ),
+              ),
+              Positioned(
+                bottom: -34,
+                right: -10,
+                child: Container(
+                  width: 126,
+                  height: 126,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [Color(0x22FFF2CC), Color(0x00FFFFFF)],
+                    ),
+                  ),
+                ),
+              ),
+              Row(
+                children: [
+                  Container(
+                    width: 60,
+                    height: 60,
+                    decoration: BoxDecoration(
+                      color: const Color(0x1EFFF6DA),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(color: const Color(0x55FFF0C2)),
+                    ),
+                    child: const Icon(
+                      Icons.wb_sunny_rounded,
+                      color: Color(0xFFFFE39A),
+                      size: 30,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 5,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0x22FFF7DD),
+                            borderRadius: BorderRadius.circular(999),
+                            border: Border.all(color: const Color(0x44FFF0C2)),
+                          ),
+                          child: Text(
+                            'اليوم فقط',
+                            style: Theme.of(context).textTheme.labelMedium
+                                ?.copyWith(
+                                  color: const Color(0xFFFFEAB5),
+                                  fontWeight: FontWeight.w900,
+                                ),
+                          ),
                         ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'التحدي اليومي',
+                          style: Theme.of(context).textTheme.titleLarge
+                              ?.copyWith(
+                                color: const Color(0xFFFFFCF4),
+                                fontWeight: FontWeight.w900,
+                              ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'نفس الكلمة لكل اللاعبين، وفرصة واحدة كل يوم.',
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: const Color(0xFFF3F8F6),
+                                fontWeight: FontWeight.w700,
+                                height: 1.35,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0x1EFFF7DD),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: const Color(0x44FFF0C2)),
+                    ),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: Color(0xFFFFE39A),
+                      size: 28,
+                    ),
                   ),
                 ],
               ),
-            ),
-            const SizedBox(width: 8),
-            const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 32),
-          ],
+            ],
+          ),
         ),
       ),
     );

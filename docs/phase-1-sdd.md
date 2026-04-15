@@ -27,10 +27,10 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 
 #### S3: Daily Streak Push Notification
 **Goal:** Send local push notifications saying 'Your streak is waiting 🔥'.
-- [ ] **Domain:** Integrate `flutter_local_notifications`. Create a `NotificationService` wrapper to schedule notifications 24 hours after the last session.
-- [ ] **Tests (Unit):** Test notification scheduling logic resets the timer correctly on new sessions.
-- [ ] **UI:** Prompt users for notification permissions unobtrusively after their first win.
-- [ ] **Tests (Widget):** Ensure permission dialogues trigger correctly.
+- [x] **Domain:** Integrate `flutter_local_notifications`. Create a `NotificationService` wrapper to schedule notifications 24 hours after the last session.
+- [x] **Tests (Unit):** Test notification scheduling logic resets the timer correctly on new sessions.
+- [x] **UI:** Prompt users for notification permissions unobtrusively after their first win.
+- [x] **Tests (Widget):** Ensure permission dialogues trigger correctly.
 
 #### S4: Word Meaning Reveal
 **Goal:** Show definitions/context after solving the puzzle.
@@ -77,3 +77,18 @@ Once implemented:
 2. Adjust system clock +1 Day and verify Daily Challenge (S2) accessibility.
 3. Observe Android/iOS local notifications trigger (S3).
 4. Share the results to clipboard and paste in a local text editor to verify emoji outputs.
+
+### Manual Test Guide For Completed Phase 1 Items
+
+#### S2: Daily Challenge Mode
+1. Open the mode selection screen and confirm the `التحدي اليومي` card is clearly visible and readable on a physical device.
+2. Tap the daily card and verify it opens a daily round instead of endless mode.
+3. Complete or lose the daily round, return to the mode selection screen, and confirm the same daily challenge does not reset on the same calendar day.
+4. Advance the device date by one day and confirm a fresh daily puzzle becomes available.
+
+#### S3: Daily Streak Push Notification
+1. Launch the app and verify it no longer stalls on the splash screen during notification service initialization.
+2. Win a round and confirm the one-time permission prompt appears after the result dialog flow.
+3. Accept the prompt and verify the app requests local notification permission from the OS.
+4. Play another round and confirm the reminder schedule is refreshed instead of stacking duplicate reminders.
+5. Decline the prompt on a fresh install and verify the app continues normally without crashing or blocking navigation.

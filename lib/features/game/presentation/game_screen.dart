@@ -25,7 +25,11 @@ part 'game_screen/screen_grid.dart';
 part 'game_screen/screen_dialogs.dart';
 
 class GameScreen extends StatelessWidget {
-  const GameScreen({super.key, required this.mode, this.track = GameTrack.endless});
+  const GameScreen({
+    super.key,
+    required this.mode,
+    this.track = GameTrack.endless,
+  });
 
   final GameMode mode;
   final GameTrack track;
@@ -124,10 +128,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     FocusScope.of(context).unfocus();
     if (accepted) {
-      final nextState = ref
-          .read(gameControllerProvider(_config))
-          .asData
-          ?.value;
+      final nextState = ref.read(gameControllerProvider(_config)).asData?.value;
       if (nextState?.pendingResult == null) {
         unawaited(AppHaptics.lightImpact());
       }
@@ -166,10 +167,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     final used = await ref
         .read(gameControllerProvider(_config).notifier)
         .useHint();
-    final nextState = ref
-        .read(gameControllerProvider(_config))
-        .asData
-        ?.value;
+    final nextState = ref.read(gameControllerProvider(_config)).asData?.value;
     final nextRevealedCount =
         nextState?.session.revealedHintIndexes.length ?? 0;
     if (used && nextRevealedCount > previousRevealedCount) {
@@ -179,7 +177,10 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     }
   }
 
-  Future<void> _showRoundResultDialog(RoundResult result, GameSession session) async {
+  Future<void> _showRoundResultDialog(
+    RoundResult result,
+    GameSession session,
+  ) async {
     if (_isResultDialogOpen || !mounted) {
       return;
     }
@@ -193,7 +194,11 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       barrierColor: Colors.black.withValues(alpha: 0.28),
       transitionDuration: const Duration(milliseconds: 280),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return _RoundResultDialog(result: result, session: session);
+        return _RoundResultDialog(
+          result: result,
+          session: session,
+          track: _config.track,
+        );
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final curve = CurvedAnimation(
@@ -212,6 +217,10 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     _isResultDialogOpen = false;
 
+    if (result.type == RoundResultType.won) {
+      await _maybePromptForNotifications();
+    }
+
     if (!mounted || shouldAdvance != true) {
       return;
     }
@@ -219,6 +228,52 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     await ref
         .read(gameControllerProvider(_config).notifier)
         .continueToNextPuzzle();
+  }
+
+  Future<void> _maybePromptForNotifications() async {
+    final notificationService = ref.read(notificationServiceProvider);
+    final shouldPrompt = await notificationService.shouldPromptForPermission();
+    if (!mounted || !shouldPrompt) {
+      return;
+    }
+
+    await notificationService.markPermissionPromptSeen();
+    final enableNotifications =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('ذكّرني بالمحافظة على السلسلة'),
+              content: const Text(
+                'بعد أول فوز، يمكننا إرسال تذكير هادئ بعد 24 ساعة حتى لا تنقطع السلسلة.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('لاحقاً'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('فعّل التذكير'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!mounted || !enableNotifications) {
+      return;
+    }
+
+    final granted = await notificationService.requestPermission();
+    if (!granted) {
+      return;
+    }
+
+    await notificationService.scheduleDailyStreakReminder(
+      lastActiveAt: ref.read(clockProvider)(),
+    );
   }
 
   int get _currentLetterCount =>
@@ -269,7 +324,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(child: _GameBackground()),
+          Positioned.fill(child: _GameBackground(track: widget.track)),
           GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () => FocusScope.of(context).unfocus(),
@@ -305,6 +360,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                               ),
                               child: _GameLayout(
                                 session: viewState.session,
+                                track: widget.track,
                                 playerStats: playerStats ?? const PlayerStats(),
                                 feedback:
                                     viewState.feedback ??

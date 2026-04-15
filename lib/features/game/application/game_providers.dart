@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:arabic_wordly/app/services/notification_service.dart';
 import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
 import 'package:arabic_wordly/features/game/data/key_value_store.dart';
 import 'package:arabic_wordly/features/game/data/local_daily_mode_repository.dart';
@@ -16,6 +17,9 @@ final keyValueStoreProvider = Provider<KeyValueStore>(
 
 final randomProvider = Provider<Random>((ref) => Random());
 final clockProvider = Provider<Clock>((ref) => DateTime.now);
+final notificationServiceProvider = Provider<NotificationService>(
+  (ref) => const NoopNotificationService(),
+);
 
 final puzzleBankProvider = Provider<ArabicPuzzleBank>(
   (ref) => ArabicPuzzleBank.defaults(),

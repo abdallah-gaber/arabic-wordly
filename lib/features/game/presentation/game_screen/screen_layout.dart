@@ -3,6 +3,7 @@ part of 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 class _GameLayout extends StatelessWidget {
   const _GameLayout({
     required this.session,
+    required this.track,
     required this.playerStats,
     required this.feedback,
     required this.guessController,
@@ -21,6 +22,7 @@ class _GameLayout extends StatelessWidget {
   });
 
   final GameSession session;
+  final GameTrack track;
   final PlayerStats playerStats;
   final String feedback;
   final TextEditingController guessController;
@@ -42,6 +44,7 @@ class _GameLayout extends StatelessWidget {
     final size = MediaQuery.sizeOf(context);
     final compact = size.height < 700 || size.width < 640 || typingMode;
     final dense = size.width < 430 || size.height < 820 || typingMode;
+    final trackPalette = _TrackPalette.resolve(track);
     final layoutProfile = _ModeLayoutProfile.resolve(
       mode: session.mode,
       size: size,
@@ -57,6 +60,7 @@ class _GameLayout extends StatelessWidget {
           delayFactor: 0,
           child: _Header(
             session: session,
+            track: track,
             playerStats: playerStats,
             compact: compact,
             dense: dense,
@@ -72,7 +76,19 @@ class _GameLayout extends StatelessWidget {
         ),
         _EntranceMotion(
           delayFactor: 1,
-          child: Card(
+          child: Container(
+            decoration: BoxDecoration(
+              color: trackPalette.cardColor,
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: trackPalette.cardBorderColor),
+              boxShadow: [
+                BoxShadow(
+                  color: trackPalette.shadowColor,
+                  blurRadius: 24,
+                  offset: const Offset(0, 14),
+                ),
+              ],
+            ),
             child: Padding(
               padding: EdgeInsets.all(layoutProfile.cardPadding),
               child: Column(
@@ -124,6 +140,81 @@ class _GameLayout extends StatelessWidget {
         ],
       ],
     );
+  }
+}
+
+class _TrackPalette {
+  const _TrackPalette({
+    required this.backgroundGradient,
+    required this.orbTopColors,
+    required this.orbLeftColors,
+    required this.orbBottomColors,
+    required this.headerChipBackground,
+    required this.headerChipForeground,
+    required this.headerChipBorder,
+    required this.cardColor,
+    required this.cardBorderColor,
+    required this.shadowColor,
+    required this.bannerTitle,
+    required this.bannerSubtitle,
+    required this.bannerIcon,
+  });
+
+  final List<Color> backgroundGradient;
+  final List<Color> orbTopColors;
+  final List<Color> orbLeftColors;
+  final List<Color> orbBottomColors;
+  final Color headerChipBackground;
+  final Color headerChipForeground;
+  final Color headerChipBorder;
+  final Color cardColor;
+  final Color cardBorderColor;
+  final Color shadowColor;
+  final String bannerTitle;
+  final String bannerSubtitle;
+  final IconData bannerIcon;
+
+  static _TrackPalette resolve(GameTrack track) {
+    return switch (track) {
+      GameTrack.daily => const _TrackPalette(
+        backgroundGradient: [
+          Color(0xFFFFF7E8),
+          Color(0xFFF5FBF6),
+          Color(0xFFFFF1D6),
+        ],
+        orbTopColors: [Color(0x55E0A93B), Color(0x00FFFFFF)],
+        orbLeftColors: [Color(0x3329A28E), Color(0x00FFFFFF)],
+        orbBottomColors: [Color(0x33C98B2E), Color(0x00FFFFFF)],
+        headerChipBackground: Color(0xFFFFF2CC),
+        headerChipForeground: Color(0xFF8A6410),
+        headerChipBorder: Color(0xFFE5C06A),
+        cardColor: Color(0xFFFFF9EE),
+        cardBorderColor: Color(0xFFE8D49A),
+        shadowColor: Color(0x1FBE922A),
+        bannerTitle: 'التحدي اليومي',
+        bannerSubtitle: 'كلمة واحدة مشتركة للجميع اليوم.',
+        bannerIcon: Icons.wb_sunny_rounded,
+      ),
+      _ => const _TrackPalette(
+        backgroundGradient: [
+          Color(0xFFF9F5EE),
+          Color(0xFFF2F8F5),
+          Color(0xFFF8F4EC),
+        ],
+        orbTopColors: [Color(0x3329A28E), Color(0x00FFFFFF)],
+        orbLeftColors: [Color(0x22E0A93B), Color(0x00FFFFFF)],
+        orbBottomColors: [Color(0x1F157A6E), Color(0x00FFFFFF)],
+        headerChipBackground: Color(0xFFEAF3F0),
+        headerChipForeground: Color(0xFF157A6E),
+        headerChipBorder: Color(0xFFB9D7CF),
+        cardColor: Color(0xFFFFFCF6),
+        cardBorderColor: Color(0xFFD9D2C6),
+        shadowColor: Color(0x14157A6E),
+        bannerTitle: 'اللعب المفتوح',
+        bannerSubtitle: 'تقدر تكمل وتبدّل بين الجولات بحرية.',
+        bannerIcon: Icons.all_inclusive_rounded,
+      ),
+    };
   }
 }
 
@@ -248,43 +339,37 @@ class _ModeLayoutProfile {
 }
 
 class _GameBackground extends StatelessWidget {
-  const _GameBackground();
+  const _GameBackground({required this.track});
+
+  final GameTrack track;
 
   @override
   Widget build(BuildContext context) {
+    final palette = _TrackPalette.resolve(track);
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFFF9F5EE), Color(0xFFF2F8F5), Color(0xFFF8F4EC)],
+          colors: palette.backgroundGradient,
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
         ),
       ),
       child: Stack(
-        children: const [
+        children: [
           Positioned(
             top: -90,
             right: -50,
-            child: _BackgroundOrb(
-              size: 220,
-              colors: [Color(0x3329A28E), Color(0x00FFFFFF)],
-            ),
+            child: _BackgroundOrb(size: 220, colors: palette.orbTopColors),
           ),
           Positioned(
             top: 260,
             left: -70,
-            child: _BackgroundOrb(
-              size: 180,
-              colors: [Color(0x22E0A93B), Color(0x00FFFFFF)],
-            ),
+            child: _BackgroundOrb(size: 180, colors: palette.orbLeftColors),
           ),
           Positioned(
             bottom: -40,
             right: 30,
-            child: _BackgroundOrb(
-              size: 200,
-              colors: [Color(0x1F157A6E), Color(0x00FFFFFF)],
-            ),
+            child: _BackgroundOrb(size: 200, colors: palette.orbBottomColors),
           ),
         ],
       ),

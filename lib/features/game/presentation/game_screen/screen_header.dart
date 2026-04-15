@@ -3,6 +3,7 @@ part of 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 class _Header extends StatelessWidget {
   const _Header({
     required this.session,
+    required this.track,
     required this.playerStats,
     required this.compact,
     required this.dense,
@@ -10,6 +11,7 @@ class _Header extends StatelessWidget {
   });
 
   final GameSession session;
+  final GameTrack track;
   final PlayerStats playerStats;
   final bool compact;
   final bool dense;
@@ -22,10 +24,43 @@ class _Header extends StatelessWidget {
     final compactHeader = width < 430;
     final stackStats = width < 360;
     final currentModeStats = playerStats.statsForMode(session.mode);
+    final trackPalette = _TrackPalette.resolve(track);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (!typingMode) ...[
+          Align(
+            alignment: Alignment.center,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: trackPalette.headerChipBackground,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: trackPalette.headerChipBorder),
+              ),
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  Icon(
+                    trackPalette.bannerIcon,
+                    size: 18,
+                    color: trackPalette.headerChipForeground,
+                  ),
+                  Text(
+                    trackPalette.bannerTitle,
+                    style: textTheme.labelLarge?.copyWith(
+                      color: trackPalette.headerChipForeground,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(height: dense ? 8 : 10),
+        ],
         Text(
           appNameArabic,
           textAlign: TextAlign.center,
@@ -86,11 +121,22 @@ class _Header extends StatelessWidget {
           SizedBox(height: dense ? 8 : 10),
         ] else ...[
           Text(
-            'الوضع الحالي: ${session.mode.label}',
+            track == GameTrack.daily
+                ? 'اليوم في ${session.mode.label}'
+                : 'الوضع الحالي: ${session.mode.label}',
             textAlign: TextAlign.center,
             style: textTheme.labelLarge?.copyWith(
-              color: const Color(0xFF157A6E),
+              color: trackPalette.headerChipForeground,
               fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: dense ? 6 : 8),
+          Text(
+            trackPalette.bannerSubtitle,
+            textAlign: TextAlign.center,
+            style: textTheme.bodyMedium?.copyWith(
+              color: const Color(0xFF6E674E),
+              fontWeight: FontWeight.w600,
             ),
           ),
           if (session.category.isNotEmpty) ...[
@@ -107,9 +153,9 @@ class _Header extends StatelessWidget {
                     vertical: dense ? 6 : 8,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEAF3F0),
+                    color: trackPalette.headerChipBackground,
                     borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: const Color(0xFFB9D7CF)),
+                    border: Border.all(color: trackPalette.headerChipBorder),
                   ),
                   child: Wrap(
                     alignment: WrapAlignment.center,
@@ -120,13 +166,13 @@ class _Header extends StatelessWidget {
                       Icon(
                         Icons.category_outlined,
                         size: dense ? 16 : 18,
-                        color: const Color(0xFF157A6E),
+                        color: trackPalette.headerChipForeground,
                       ),
                       Text(
                         'الفئة: ${session.category}',
                         textAlign: TextAlign.center,
                         style: textTheme.labelLarge?.copyWith(
-                          color: const Color(0xFF157A6E),
+                          color: trackPalette.headerChipForeground,
                           fontWeight: FontWeight.w800,
                           fontSize: compactHeader ? 13 : null,
                         ),
@@ -143,7 +189,9 @@ class _Header extends StatelessWidget {
             child: TextButton.icon(
               onPressed: () => Navigator.of(context).maybePop(),
               icon: const Icon(Icons.tune_rounded, size: 18),
-              label: const Text('تغيير الوضع'),
+              label: Text(
+                track == GameTrack.daily ? 'العودة للأوضاع' : 'تغيير الوضع',
+              ),
             ),
           ),
           SizedBox(
@@ -356,10 +404,7 @@ class _MiniMetric extends StatelessWidget {
 }
 
 class _StreakFireBadge extends StatelessWidget {
-  const _StreakFireBadge({
-    required this.streak,
-    required this.dense,
-  });
+  const _StreakFireBadge({required this.streak, required this.dense});
 
   final int streak;
   final bool dense;
@@ -394,10 +439,7 @@ class _StreakFireBadge extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  '🔥',
-                  style: TextStyle(fontSize: dense ? 16 : 20),
-                ),
+                Text('🔥', style: TextStyle(fontSize: dense ? 16 : 20)),
                 const SizedBox(width: 4),
                 Text(
                   '$streak',
@@ -413,13 +455,14 @@ class _StreakFireBadge extends StatelessWidget {
           Text(
             'السلسلة',
             textAlign: TextAlign.center,
-            style: (dense
-                    ? Theme.of(context).textTheme.bodySmall
-                    : Theme.of(context).textTheme.bodyMedium)
-                ?.copyWith(
-              color: const Color(0xFFE65100),
-              fontWeight: FontWeight.w800,
-            ),
+            style:
+                (dense
+                        ? Theme.of(context).textTheme.bodySmall
+                        : Theme.of(context).textTheme.bodyMedium)
+                    ?.copyWith(
+                      color: const Color(0xFFE65100),
+                      fontWeight: FontWeight.w800,
+                    ),
           ),
         ],
       ),

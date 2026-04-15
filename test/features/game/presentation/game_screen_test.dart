@@ -1,3 +1,4 @@
+import 'package:arabic_wordly/app/services/notification_service.dart';
 import 'package:arabic_wordly/app/app.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
@@ -15,6 +16,9 @@ void main() {
 
   group('GameScreen', () {
     testWidgets('opens first to mode selection', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -36,7 +40,8 @@ void main() {
       expect(find.text('🔥 تحدي'), findsOneWidget);
 
       // Swipe right to reveal 3 letters
-      await tester.drag(find.text('🧠 كلاسيكي'), const Offset(400, 0));
+      await tester.ensureVisible(find.text('🧠 كلاسيكي'));
+      await tester.drag(find.byType(PageView), const Offset(400, 0));
       await tester.pumpAndSettle();
       expect(find.text('⚡ سريع'), findsOneWidget);
     });
@@ -102,6 +107,27 @@ void main() {
       expect(find.text('الوضع الحالي: ⚡ سريع'), findsOneWidget);
       expect(find.text('0 / 3'), findsOneWidget);
     });
+
+    testWidgets(
+      'highlights the daily challenge track with a dedicated header',
+      (tester) async {
+        await tester.pumpWidget(
+          gameScreenTestApp(
+            store: InMemoryKeyValueStore(),
+            random: FixedRandom(0),
+            mode: GameMode.fiveLetters,
+            track: GameTrack.daily,
+            clock: clock.call,
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('التحدي اليومي'), findsOneWidget);
+        expect(find.text('اليوم في 🧠 كلاسيكي'), findsOneWidget);
+        expect(find.text('كلمة واحدة مشتركة للجميع اليوم.'), findsOneWidget);
+      },
+    );
 
     testWidgets('loads directly into the current puzzle for a new user', (
       tester,
@@ -341,7 +367,10 @@ void main() {
       expect(find.text('+244 نقطة'), findsOneWidget);
       expect(find.text('المجموع 244'), findsOneWidget);
       expect(find.text('السلسلة الحالية: 1'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'مشاركة النتيجة'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة النتيجة'),
+        findsOneWidget,
+      );
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
@@ -402,7 +431,10 @@ void main() {
       expect(find.text('انتهت المحاولات'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
       expect(find.text('اقتربت من الإجابة هذه المرة'), findsOneWidget);
-      expect(find.widgetWithText(OutlinedButton, 'مشاركة النتيجة'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة النتيجة'),
+        findsOneWidget,
+      );
 
       await tester.ensureVisible(
         find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'),
@@ -497,7 +529,9 @@ void main() {
     testWidgets('shows the 🔥 streak badge only when streak > 0', (
       tester,
     ) async {
-      await tester.binding.setSurfaceSize(const Size(800, 800)); // Non-compact layout
+      await tester.binding.setSurfaceSize(
+        const Size(800, 800),
+      ); // Non-compact layout
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
       await tester.pumpWidget(
@@ -527,5 +561,73 @@ void main() {
       // Streak is now 1 -> fire badge is visible.
       expect(find.text('🔥'), findsOneWidget);
     });
+
+    testWidgets('prompts for notification permission after the first win', (
+      tester,
+    ) async {
+      final notifications = _FakeNotificationService();
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+          notificationService: notifications,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ذكّرني بالمحافظة على السلسلة'), findsOneWidget);
+      expect(notifications.markPromptSeenCount, 1);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'فعّل التذكير'));
+      await tester.pumpAndSettle();
+
+      expect(notifications.requestPermissionCount, 1);
+      expect(notifications.scheduledReminders, hasLength(2));
+      expect(find.text('المحاولة الحالية'), findsOneWidget);
+    });
   });
+}
+
+class _FakeNotificationService implements NotificationService {
+  int markPromptSeenCount = 0;
+  int requestPermissionCount = 0;
+  final List<DateTime> scheduledReminders = <DateTime>[];
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<void> markPermissionPromptSeen() async {
+    markPromptSeenCount++;
+  }
+
+  @override
+  Future<bool> requestPermission() async {
+    requestPermissionCount++;
+    return true;
+  }
+
+  @override
+  Future<void> scheduleDailyStreakReminder({
+    required DateTime lastActiveAt,
+  }) async {
+    scheduledReminders.add(lastActiveAt);
+  }
+
+  @override
+  Future<bool> shouldPromptForPermission() async {
+    return markPromptSeenCount == 0;
+  }
 }
