@@ -1,10 +1,11 @@
 part of 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 
 class _RoundResultDialog extends StatelessWidget {
-  const _RoundResultDialog({required this.result, required this.session});
+  const _RoundResultDialog({required this.result, required this.session, required this.track});
 
   final RoundResult result;
   final GameSession session;
+  final GameTrack track;
 
   @override
   Widget build(BuildContext context) {
@@ -145,15 +146,24 @@ class _RoundResultDialog extends StatelessWidget {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(true),
+                                onPressed: () {
+                                  if (track == GameTrack.daily) {
+                                    Navigator.of(context).pop(false);
+                                  } else {
+                                    Navigator.of(context).pop(true);
+                                  }
+                                },
                                 icon: Icon(
-                                  isWin
-                                      ? Icons.arrow_forward_rounded
-                                      : Icons.refresh_rounded,
+                                  track == GameTrack.daily
+                                      ? Icons.home_rounded
+                                      : isWin
+                                          ? Icons.arrow_forward_rounded
+                                          : Icons.refresh_rounded,
                                 ),
                                 label: Text(
-                                  isWin ? 'التالي' : 'جرب لغزاً جديداً',
+                                  track == GameTrack.daily
+                                      ? 'العودة للقائمة'
+                                      : isWin ? 'التالي' : 'جرب لغزاً جديداً',
                                 ),
                               ),
                             ),
@@ -163,7 +173,7 @@ class _RoundResultDialog extends StatelessWidget {
                               child: OutlinedButton.icon(
                                 onPressed: () async {
                                   final text = ShareResultFormatter.formatCompletedRound(
-                                    track: GameTrack.endless,
+                                    track: track,
                                     mode: session.mode,
                                     answer: session.answer,
                                     guesses: session.guesses,

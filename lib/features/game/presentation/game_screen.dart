@@ -25,26 +25,29 @@ part 'game_screen/screen_grid.dart';
 part 'game_screen/screen_dialogs.dart';
 
 class GameScreen extends StatelessWidget {
-  const GameScreen({super.key, required this.mode});
+  const GameScreen({super.key, required this.mode, this.track = GameTrack.endless});
 
   final GameMode mode;
+  final GameTrack track;
 
   @override
   Widget build(BuildContext context) {
-    return _GameScreenView(mode: mode);
+    return _GameScreenView(mode: mode, track: track);
   }
 }
 
 class _GameScreenView extends ConsumerStatefulWidget {
-  const _GameScreenView({required this.mode});
+  const _GameScreenView({required this.mode, required this.track});
 
   final GameMode mode;
+  final GameTrack track;
 
   @override
   ConsumerState<_GameScreenView> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends ConsumerState<_GameScreenView> {
+  GameConfig get _config => GameConfig(mode: widget.mode, track: widget.track);
   late final TextEditingController _guessController;
   late final FocusNode _guessFocusNode;
   late final Timer _hintTimer;
@@ -112,7 +115,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     }
 
     final accepted = await ref
-        .read(gameControllerProvider(widget.mode).notifier)
+        .read(gameControllerProvider(_config).notifier)
         .submitGuess(_guessController.text);
 
     if (!mounted) {
@@ -122,7 +125,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     FocusScope.of(context).unfocus();
     if (accepted) {
       final nextState = ref
-          .read(gameControllerProvider(widget.mode))
+          .read(gameControllerProvider(_config))
           .asData
           ?.value;
       if (nextState?.pendingResult == null) {
@@ -148,23 +151,23 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   Future<void> _skipPuzzle() async {
     FocusScope.of(context).unfocus();
     _guessController.clear();
-    await ref.read(gameControllerProvider(widget.mode).notifier).skipPuzzle();
+    await ref.read(gameControllerProvider(_config).notifier).skipPuzzle();
     unawaited(AppHaptics.mediumImpact());
   }
 
   Future<void> _useHint() async {
     FocusScope.of(context).unfocus();
     final currentState = ref
-        .read(gameControllerProvider(widget.mode))
+        .read(gameControllerProvider(_config))
         .asData
         ?.value;
     final previousRevealedCount =
         currentState?.session.revealedHintIndexes.length ?? 0;
     final used = await ref
-        .read(gameControllerProvider(widget.mode).notifier)
+        .read(gameControllerProvider(_config).notifier)
         .useHint();
     final nextState = ref
-        .read(gameControllerProvider(widget.mode))
+        .read(gameControllerProvider(_config))
         .asData
         ?.value;
     final nextRevealedCount =
@@ -214,7 +217,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     }
 
     await ref
-        .read(gameControllerProvider(widget.mode).notifier)
+        .read(gameControllerProvider(_config).notifier)
         .continueToNextPuzzle();
   }
 
@@ -236,7 +239,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
   @override
   Widget build(BuildContext context) {
-    final gameState = ref.watch(gameControllerProvider(widget.mode));
+    final gameState = ref.watch(gameControllerProvider(_config));
     final playerStats = ref.watch(playerStatsProvider).asData?.value;
     final now = ref.read(clockProvider)();
     final typingMode = _typingModeFor(context);
@@ -245,7 +248,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     );
     final bottomContentPadding =
         20.0 + (showPinnedVerifyBar ? _PinnedVerifyBar.barHeight + 16.0 : 0.0);
-    ref.listen(gameControllerProvider(widget.mode), (previous, next) {
+    ref.listen(gameControllerProvider(_config), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
       if (nextResult != null && !identical(previousResult, nextResult)) {

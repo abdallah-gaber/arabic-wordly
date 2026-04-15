@@ -39,7 +39,9 @@ class ModeSelectionScreen extends ConsumerWidget {
                                 textTheme: textTheme,
                                 stats: playerStats ?? const PlayerStats(),
                               ),
-                              const SizedBox(height: 26),
+                              const SizedBox(height: 16),
+                              const _DailyChallengeCard(),
+                              const SizedBox(height: 24),
                               _ModeCarousel(playerStats: playerStats),
                               const SizedBox(height: 22),
                               Container(
@@ -579,6 +581,69 @@ class _ModeSelectionOrb extends StatelessWidget {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           gradient: RadialGradient(colors: colors),
+        ),
+      ),
+    );
+  }
+}
+
+class _DailyChallengeCard extends StatelessWidget {
+  const _DailyChallengeCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => const GameScreen(
+              mode: GameMode.fiveLetters,
+              track: GameTrack.daily,
+            ),
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Ink(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF157A6E),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF157A6E).withValues(alpha: 0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.today_rounded, color: Colors.white, size: 36),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'التحدي اليومي',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                  ),
+                  Text(
+                    'كلمة مشتركة للجميع، مرة يومياً.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Colors.white.withValues(alpha: 0.85),
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.play_circle_fill_rounded, color: Colors.white, size: 32),
+          ],
         ),
       ),
     );

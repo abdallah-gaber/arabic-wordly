@@ -11,6 +11,20 @@ import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 
 enum LetterMatch { correct, present, absent }
 
+class GameConfig {
+  const GameConfig({required this.mode, this.track = GameTrack.endless});
+  final GameMode mode;
+  final GameTrack track;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GameConfig && mode == other.mode && track == other.track;
+
+  @override
+  int get hashCode => Object.hash(mode, track);
+}
+
 enum SessionOutcome { inProgress, won, lost }
 
 enum RoundResultType { won, lost }

@@ -9,14 +9,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 export 'game_providers.dart';
 
 final gameControllerProvider =
-    AsyncNotifierProvider.family<GameController, GameViewState, GameMode>(
+    AsyncNotifierProvider.family<GameController, GameViewState, GameConfig>(
       GameController.new,
     );
 
 class GameController extends AsyncNotifier<GameViewState> {
-  GameController(this.mode);
+  GameController(this.config);
 
-  final GameMode mode;
+  final GameConfig config;
+  GameMode get mode => config.mode;
+  GameTrack get track => config.track;
   bool _isMutating = false;
 
   GameLocalRepository get _repository => ref.read(gameRepositoryProvider);
@@ -24,13 +26,66 @@ class GameController extends AsyncNotifier<GameViewState> {
 
   @override
   Future<GameViewState> build() async {
-    final session = await _repository.restoreOrCreateSession(mode);
+    final session = await _loadSession();
     final stats = await _repository.restoreStats();
     return GameViewState(
       session: session,
       feedback: _feedbackForSession(session),
       pendingResult: _pendingResultForSession(session, stats: stats),
     );
+  }
+
+  Future<GameSession> _loadSession() async {
+    if (track == GameTrack.daily) {
+      final dailyRepo = ref.read(dailyModeRepositoryProvider);
+      final dailyProgress = await dailyRepo.restoreProgress(mode: mode, date: _now);
+      if (dailyProgress != null) {
+        return _toSession(dailyProgress);
+      }
+      final todayPuzzle = await dailyRepo.puzzleForDate(mode: mode, date: _now);
+      return GameSession(
+        round: 1,
+        mode: mode,
+        answer: todayPuzzle.answer,
+        category: todayPuzzle.category,
+        startedAtEpochMs: _now.millisecondsSinceEpoch,
+      );
+    } else {
+      return _repository.restoreOrCreateSession(mode);
+    }
+  }
+
+  GameSession _toSession(DailyProgress progress) {
+    return GameSession(
+      round: 1,
+      mode: progress.mode,
+      answer: progress.answer,
+      category: progress.category,
+      guesses: progress.guesses,
+      revealedHintIndexes: progress.revealedHintIndexes,
+      completionPoints: progress.pointsEarned,
+      startedAtEpochMs: _now.millisecondsSinceEpoch,
+    );
+  }
+
+  Future<void> _saveSession(GameSession session) async {
+    if (track == GameTrack.daily) {
+      final dailyRepo = ref.read(dailyModeRepositoryProvider);
+      final dateKey = '${_now.year}-${_now.month.toString().padLeft(2, '0')}-${_now.day.toString().padLeft(2, '0')}';
+      await dailyRepo.saveProgress(
+        DailyProgress(
+          mode: session.mode,
+          dateKey: dateKey,
+          answer: session.answer,
+          category: session.category,
+          guesses: session.guesses,
+          revealedHintIndexes: session.revealedHintIndexes,
+          pointsEarned: session.completionPoints,
+        ),
+      );
+    } else {
+      await _repository.saveSession(session);
+    }
   }
 
   Future<bool> submitGuess(String rawGuess) async {
@@ -64,7 +119,7 @@ class GameController extends AsyncNotifier<GameViewState> {
 
       switch (nextSession.outcome) {
         case SessionOutcome.inProgress:
-          await _repository.saveSession(nextSession);
+          await _saveSession(nextSession);
           state = AsyncData(
             current.copyWith(
               session: nextSession,
@@ -87,7 +142,7 @@ class GameController extends AsyncNotifier<GameViewState> {
             pointsEarned: pointsEarned,
           );
           nextSession = nextSession.copyWith(completionPoints: pointsEarned);
-          await _repository.saveSession(nextSession);
+          await _saveSession(nextSession);
           await _repository.saveStats(updatedStats);
           ref.invalidate(playerStatsProvider);
           state = AsyncData(
@@ -108,7 +163,7 @@ class GameController extends AsyncNotifier<GameViewState> {
             completion: RoundCompletion.lost,
             pointsEarned: 0,
           );
-          await _repository.saveSession(nextSession);
+          await _saveSession(nextSession);
           await _repository.saveStats(updatedStats);
           ref.invalidate(playerStatsProvider);
           state = AsyncData(
@@ -200,6 +255,16 @@ class GameController extends AsyncNotifier<GameViewState> {
 
     _isMutating = true;
     try {
+      if (track == GameTrack.daily) {
+        state = AsyncData(
+          GameViewState(
+            session: current.session, // preserve current
+            feedback: 'لا يمكنك تخطي اللغز اليومي.',
+          ),
+        );
+        return;
+      }
+
       final existingStats = await _repository.restoreStats();
       final updatedStats = _recordStats(
         existingStats,
@@ -214,6 +279,7 @@ class GameController extends AsyncNotifier<GameViewState> {
         round: current.session.round + 1,
         excluding: current.session.answer,
       );
+      await _saveSession(nextSession);
       state = AsyncData(
         GameViewState(
           session: nextSession,
@@ -237,11 +303,27 @@ class GameController extends AsyncNotifier<GameViewState> {
 
     _isMutating = true;
     try {
+      if (track == GameTrack.daily) {
+        state = AsyncData(
+          GameViewState(
+            session: current.session,
+            feedback: 'اكتمل اللغز اليومي. عد غداً لتحدي جديد!',
+            pendingResult: RoundResult.fromSession(
+              current.session,
+              totalScore: (await _repository.restoreStats()).totalScore,
+              currentStreak: (await _repository.restoreStats()).currentStreak,
+            ),
+          ),
+        );
+        return;
+      }
+
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
         excluding: current.session.answer,
       );
+      await _saveSession(nextSession);
       state = AsyncData(
         GameViewState(
           session: nextSession,
