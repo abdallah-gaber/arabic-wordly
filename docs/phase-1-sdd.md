@@ -20,10 +20,10 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 
 #### S2: Daily Challenge Mode
 **Goal:** One shared word per day, identical for all users.
-- [ ] **Domain:** Implement `DailyWordProvider` / `DailyModeRepository`. The daily word can be pseudo-random based on the current date seed, preventing users from getting randomized endless words.
-- [ ] **Tests (Unit):** Test `DailyWordProvider` returns consistent target words for a given date across multiple calls, but different words on different dates.
-- [ ] **UI:** Add a distinct entry point on the Mode Selection screen. Prevent users from playing multiple times a day on the same date.
-- [ ] **Tests (Widget):** Ensure playing a daily challenge disables the challenge button until the next day.
+- [x] **Domain:** Implement `DailyWordProvider` / `DailyModeRepository`. The daily word can be pseudo-random based on the current date seed, preventing users from getting randomized endless words.
+- [x] **Tests (Unit):** Test `DailyWordProvider` returns consistent target words for a given date across multiple calls, but different words on different dates.
+- [x] **UI:** Add a distinct entry point on the Mode Selection screen. Prevent users from playing multiple times a day on the same date.
+- [x] **Tests (Widget):** Ensure playing a daily challenge disables the challenge button until the next day.
 
 #### S3: Daily Streak Push Notification
 **Goal:** Send local push notifications saying 'Your streak is waiting 🔥'.
