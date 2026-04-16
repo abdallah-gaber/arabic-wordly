@@ -193,6 +193,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
             mode: current.session.mode,
             category: current.session.category,
             guesses: current.session.guesses,
+            evaluationAnswer: current.session.answer,
             statusTitle: 'أحتاج مساعدة',
             statusSubtitle:
                 '${current.session.guesses.length} من ${ArabicWordRules.maxAttempts} محاولات',

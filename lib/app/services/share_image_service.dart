@@ -24,6 +24,7 @@ class ShareImageCardData {
     required this.statusSubtitle,
     required this.footer,
     this.answer,
+    this.evaluationAnswer,
   });
 
   final ShareImageVariant variant;
@@ -35,6 +36,7 @@ class ShareImageCardData {
   final String statusSubtitle;
   final String footer;
   final String? answer;
+  final String? evaluationAnswer;
 }
 
 abstract class ShareImageRenderer {
@@ -239,17 +241,30 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
   }
 
   void _paintHeader(Canvas canvas, ShareImageCardData data) {
+    const trackPillWidth = 220.0;
+    const modePillWidth = 170.0;
+    const pillGap = 18.0;
     _paintPill(
       canvas,
-      label: 'المسار: ${_trackShareLabel(data.track)}',
-      rect: const Rect.fromLTWH(_width - _padding - 260, 255, 260, 58),
+      label: _trackShareLabel(data.track),
+      rect: const Rect.fromLTWH(
+        _width - _padding - trackPillWidth,
+        255,
+        trackPillWidth,
+        58,
+      ),
       background: const Color(0xFFEAF3F0),
       foreground: _teal,
     );
     _paintPill(
       canvas,
-      label: 'الوضع: ${_modeShareLabel(data.mode)}',
-      rect: const Rect.fromLTWH(_width - _padding - 560, 255, 270, 58),
+      label: _modeShareLabel(data.mode),
+      rect: const Rect.fromLTWH(
+        _width - _padding - trackPillWidth - pillGap - modePillWidth,
+        255,
+        modePillWidth,
+        58,
+      ),
       background: const Color(0xFFFFF2D2),
       foreground: const Color(0xFF8A6410),
     );
@@ -277,8 +292,18 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
       anchorRight: true,
     );
 
+    final categoryLabel = 'الفئة: ${data.category}';
+    final categoryTextWidth = _measureTextWidth(
+      categoryLabel,
+      fontSize: 32,
+      fontWeight: FontWeight.w800,
+    );
+    final categoryWidth = math.min(
+      _width - (_padding * 2),
+      categoryTextWidth + 72,
+    );
     final categoryRect = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(_padding, 490, _width - (_padding * 2), 94),
+      Rect.fromLTWH(_width - _padding - categoryWidth, 490, categoryWidth, 94),
       const Radius.circular(28),
     );
     canvas.drawRRect(categoryRect, Paint()..color = const Color(0xFFFFF7E8));
@@ -291,7 +316,7 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     );
     _paintText(
       canvas,
-      'الفئة: ${data.category}',
+      categoryLabel,
       Offset(_width - _padding - 30, 520),
       fontSize: 32,
       color: const Color(0xFF8A6410),
@@ -303,13 +328,15 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
   }
 
   void _paintGrid(Canvas canvas, ShareImageCardData data) {
-    final answer = data.answer;
-    final rows = answer == null
+    final answerForEvaluation = data.evaluationAnswer ?? data.answer;
+    final rows = answerForEvaluation == null
         ? data.guesses
         : data.guesses
               .map(
-                (guess) =>
-                    GuessEvaluator.evaluate(guess: guess, answer: answer),
+                (guess) => GuessEvaluator.evaluate(
+                  guess: guess,
+                  answer: answerForEvaluation,
+                ),
               )
               .toList();
     final top = 640.0;
@@ -319,7 +346,7 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     final totalWidth = (tile * cols) + (gap * (cols - 1));
     final startX = (_width - totalWidth) / 2;
 
-    if (answer == null) {
+    if (answerForEvaluation == null) {
       for (var row = 0; row < data.guesses.length; row++) {
         final letters = data.guesses[row].characters.toList();
         for (var col = 0; col < math.min(cols, letters.length); col++) {
@@ -417,6 +444,7 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     return switch (track) {
       GameTrack.daily => 'التحدي اليومي',
       GameTrack.endless => 'المسار المفتوح',
+      GameTrack.multiplayer => 'متعدد اللاعبين',
     };
   }
 
@@ -510,5 +538,27 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
         ? Offset(offset.dx - painter.width, offset.dy)
         : offset;
     painter.paint(canvas, paintOffset);
+  }
+
+  double _measureTextWidth(
+    String text, {
+    required double fontSize,
+    required FontWeight fontWeight,
+    TextDirection textDirection = TextDirection.rtl,
+  }) {
+    final painter = TextPainter(
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          fontSize: fontSize,
+          fontWeight: fontWeight,
+          height: 1.25,
+        ),
+      ),
+      textDirection: textDirection,
+      maxLines: 1,
+    )..layout();
+
+    return painter.width;
   }
 }
