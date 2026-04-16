@@ -1,4 +1,6 @@
 import 'package:arabic_wordly/app/services/notification_service.dart';
+import 'package:arabic_wordly/app/services/share_image_service.dart';
+import 'package:arabic_wordly/app/services/share_sheet_service.dart';
 import 'package:arabic_wordly/app/app.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
@@ -364,11 +366,22 @@ void main() {
 
       expect(find.text('أحسنت!'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      expect(find.text('معنى الكلمة'), findsOneWidget);
+      expect(
+        find.text(
+          'مساحة مزروعة تضم نباتات وأزهاراً وتُستخدم للراحة أو التنزه.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('+244 نقطة'), findsOneWidget);
       expect(find.text('المجموع 244'), findsOneWidget);
       expect(find.text('السلسلة الحالية: 1'), findsOneWidget);
       expect(
-        find.widgetWithText(OutlinedButton, 'مشاركة النتيجة'),
+        find.widgetWithText(OutlinedButton, 'مشاركة صورة'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة نصية'),
         findsOneWidget,
       );
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
@@ -430,9 +443,20 @@ void main() {
 
       expect(find.text('انتهت المحاولات'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      expect(find.text('معنى الكلمة'), findsOneWidget);
+      expect(
+        find.text(
+          'مساحة مزروعة تضم نباتات وأزهاراً وتُستخدم للراحة أو التنزه.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('اقتربت من الإجابة هذه المرة'), findsOneWidget);
       expect(
-        find.widgetWithText(OutlinedButton, 'مشاركة النتيجة'),
+        find.widgetWithText(OutlinedButton, 'مشاركة صورة'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة نصية'),
         findsOneWidget,
       );
 
@@ -597,6 +621,83 @@ void main() {
       expect(notifications.scheduledReminders, hasLength(2));
       expect(find.text('المحاولة الحالية'), findsOneWidget);
     });
+
+    testWidgets('shares a branded image from the solved result dialog', (
+      tester,
+    ) async {
+      final shareImageService = _FakeShareImageService();
+      final shareSheetService = _FakeShareSheetService();
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+          shareImageService: shareImageService,
+          shareSheetService: shareSheetService,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'مشاركة صورة'),
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, 'مشاركة صورة'));
+      await tester.pumpAndSettle();
+
+      expect(shareImageService.createCalls, 1);
+      expect(shareSheetService.sharedFiles, hasLength(1));
+      expect(shareSheetService.sharedFiles.single, [
+        '/tmp/fake-share-image.png',
+      ]);
+    });
+
+    testWidgets(
+      'shares current progress for help once the player has guessed',
+      (tester) async {
+        final shareImageService = _FakeShareImageService();
+        final shareSheetService = _FakeShareSheetService();
+
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          gameScreenTestApp(
+            store: InMemoryKeyValueStore(),
+            random: FixedRandom(0),
+            mode: GameMode.fiveLetters,
+            clock: clock.call,
+            shareImageService: shareImageService,
+            shareSheetService: shareSheetService,
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.showKeyboard(find.byType(TextField));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'مكتبة');
+        await tester.pump();
+        await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(
+          find.widgetWithText(OutlinedButton, 'شارك للمساعدة بصورة'),
+        );
+        await tester.tap(
+          find.widgetWithText(OutlinedButton, 'شارك للمساعدة بصورة'),
+        );
+        await tester.pumpAndSettle();
+
+        expect(shareImageService.createCalls, 1);
+        expect(shareSheetService.sharedFiles, hasLength(1));
+      },
+    );
   });
 }
 
@@ -629,5 +730,36 @@ class _FakeNotificationService implements NotificationService {
   @override
   Future<bool> shouldPromptForPermission() async {
     return markPromptSeenCount == 0;
+  }
+}
+
+class _FakeShareImageService extends ShareImageService {
+  _FakeShareImageService() : super();
+
+  int createCalls = 0;
+
+  @override
+  Future<String> createShareImage(ShareImageCardData data) async {
+    createCalls++;
+    return '/tmp/fake-share-image.png';
+  }
+}
+
+class _FakeShareSheetService implements ShareSheetService {
+  final List<List<String>> sharedFiles = <List<String>>[];
+  final List<String> sharedTexts = <String>[];
+
+  @override
+  Future<void> shareFiles(
+    List<String> paths, {
+    String? text,
+    Rect? sharePositionOrigin,
+  }) async {
+    sharedFiles.add(paths);
+  }
+
+  @override
+  Future<void> shareText(String text, {Rect? sharePositionOrigin}) async {
+    sharedTexts.add(text);
   }
 }

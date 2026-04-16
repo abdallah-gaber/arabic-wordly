@@ -135,7 +135,7 @@ class FlutterNotificationSchedulerPlatform
     } catch (_) {}
 
     const initializationSettings = InitializationSettings(
-      android: AndroidInitializationSettings('ic_launcher'),
+      android: AndroidInitializationSettings('ic_stat_5amenha'),
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -167,12 +167,22 @@ class FlutterNotificationSchedulerPlatform
       return;
     }
 
+    await initialize();
+    if (!_initialized) {
+      return;
+    }
+
     await _plugin.cancel(id: id);
   }
 
   @override
   Future<bool> requestPermission() async {
     if (!supportsNotifications) {
+      return false;
+    }
+
+    await initialize();
+    if (!_initialized) {
       return false;
     }
 
@@ -225,6 +235,9 @@ class FlutterNotificationSchedulerPlatform
     }
 
     await initialize();
+    if (!_initialized) {
+      return;
+    }
 
     await _plugin.zonedSchedule(
       id: id,

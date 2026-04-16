@@ -3,6 +3,8 @@ import 'dart:math';
 
 import 'package:arabic_wordly/app/app_branding.dart';
 import 'package:arabic_wordly/app/services/app_haptics.dart';
+import 'package:arabic_wordly/app/services/share_image_service.dart';
+import 'package:arabic_wordly/app/services/share_sheet_service.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
@@ -10,7 +12,6 @@ import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:arabic_wordly/features/game/domain/share_result_formatter.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -174,6 +175,53 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       unawaited(AppHaptics.selection());
     } else {
       unawaited(AppHaptics.warning());
+    }
+  }
+
+  Future<void> _shareCurrentProgressForHelp() async {
+    final current = ref.read(gameControllerProvider(_config)).asData?.value;
+    if (current == null || !mounted) {
+      return;
+    }
+
+    final imagePath = await ref
+        .read(shareImageServiceProvider)
+        .createShareImage(
+          ShareImageCardData(
+            variant: ShareImageVariant.help,
+            track: _config.track,
+            mode: current.session.mode,
+            category: current.session.category,
+            guesses: current.session.guesses,
+            statusTitle: 'أحتاج مساعدة',
+            statusSubtitle:
+                '${current.session.guesses.length} من ${ArabicWordRules.maxAttempts} محاولات',
+            footer: 'شاركني اقتراحك التالي في خمنها.',
+          ),
+        );
+
+    if (!mounted) {
+      return;
+    }
+
+    final box = context.findRenderObject() as RenderBox?;
+    final rect = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+    try {
+      await ref
+          .read(shareSheetServiceProvider)
+          .shareFiles(
+            [imagePath],
+            text:
+                'أنا عالق في ${_config.track.label} | ${current.session.mode.label}. من لديه اقتراح؟',
+            sharePositionOrigin: rect,
+          );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذّر مشاركة الصورة الآن.')),
+      );
     }
   }
 
@@ -377,6 +425,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                                 onSubmitGuess: _submitGuess,
                                 onSkipPuzzle: _skipPuzzle,
                                 onUseHint: _useHint,
+                                onShareHelp: _shareCurrentProgressForHelp,
                                 typingMode: typingMode,
                                 showPinnedVerifyBar: showPinnedVerifyBar,
                               ),

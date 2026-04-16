@@ -13,6 +13,7 @@ class _InputSection extends StatefulWidget {
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
     required this.onUseHint,
+    required this.onShareHelp,
     required this.layoutProfile,
     required this.typingMode,
     required this.showPinnedVerifyBar,
@@ -29,6 +30,7 @@ class _InputSection extends StatefulWidget {
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
+  final Future<void> Function() onShareHelp;
   final _ModeLayoutProfile layoutProfile;
   final bool typingMode;
   final bool showPinnedVerifyBar;
@@ -263,28 +265,46 @@ class _InputSectionState extends State<_InputSection> {
         ),
         SizedBox(height: widget.dense ? 8 : 12),
         if (widget.typingMode)
-          Row(
+          Column(
             children: [
-              Expanded(
-                child: TextButton.icon(
-                  onPressed: widget.onSkipPuzzle,
-                  icon: const Icon(Icons.autorenew_rounded),
-                  label: const Text('لغز جديد'),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _TypingActionButton(
+                      onPressed: widget.onSkipPuzzle,
+                      icon: Icons.autorenew_rounded,
+                      title: 'لغز جديد',
+                      subtitle: 'بدّل الجولة',
+                      accent: const Color(0xFF157A6E),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: _TypingActionButton(
+                      onPressed: widget.session.guesses.isEmpty
+                          ? null
+                          : widget.onShareHelp,
+                      icon: Icons.ios_share_rounded,
+                      title: 'شارك للمساعدة',
+                      subtitle: widget.session.guesses.isEmpty
+                          ? 'بعد أول محاولة'
+                          : 'صورة سريعة',
+                      accent: const Color(0xFF8A6410),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _SecondaryPanelToggle(
-                  title: 'التلميحات',
-                  subtitle: hasHintsRemaining
-                      ? canUseHint
-                            ? 'جاهز'
-                            : _formatHintWait(hintWait)
-                      : 'اكتمل',
-                  isExpanded: _showHints,
-                  onToggle: () => setState(() => _showHints = !_showHints),
-                  compact: true,
-                ),
+              const SizedBox(height: 8),
+              _SecondaryPanelToggle(
+                title: 'التلميحات',
+                subtitle: hasHintsRemaining
+                    ? canUseHint
+                          ? 'جاهز الآن'
+                          : 'التالي ${_formatHintWait(hintWait)}'
+                    : 'اكتمل',
+                isExpanded: _showHints,
+                onToggle: () => setState(() => _showHints = !_showHints),
+                compact: true,
               ),
             ],
           )
@@ -293,6 +313,14 @@ class _InputSectionState extends State<_InputSection> {
             onPressed: widget.onSkipPuzzle,
             icon: const Icon(Icons.autorenew_rounded),
             label: const Text('لغز جديد'),
+          ),
+          SizedBox(height: widget.dense ? 8 : 12),
+          OutlinedButton.icon(
+            onPressed: widget.session.guesses.isEmpty
+                ? null
+                : widget.onShareHelp,
+            icon: const Icon(Icons.ios_share_rounded),
+            label: const Text('شارك للمساعدة بصورة'),
           ),
           SizedBox(height: widget.dense ? 8 : 12),
           _SecondaryPanelToggle(
@@ -329,6 +357,79 @@ class _InputSectionState extends State<_InputSection> {
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+}
+
+class _TypingActionButton extends StatelessWidget {
+  const _TypingActionButton({
+    required this.onPressed,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.accent,
+  });
+
+  final VoidCallback? onPressed;
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color accent;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(18),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: enabled ? const Color(0xFFFFFCF6) : const Color(0xFFF2EFE8),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: enabled
+                  ? const Color(0xFFD9D2C6)
+                  : const Color(0xFFE6E0D5),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: enabled ? accent : const Color(0xFFAAA39A),
+                size: 20,
+              ),
+              const SizedBox(height: 6),
+              Text(
+                title,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                  color: enabled
+                      ? const Color(0xFF1F2A2E)
+                      : const Color(0xFFAAA39A),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                textAlign: TextAlign.center,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: enabled
+                      ? const Color(0xFF6A706C)
+                      : const Color(0xFFB7B1A8),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -139,10 +139,15 @@ class EvaluatedGuess {
 }
 
 class ArabicPuzzle {
-  const ArabicPuzzle({required this.word, required this.category});
+  const ArabicPuzzle({
+    required this.word,
+    required this.category,
+    this.definition,
+  });
 
   final String word;
   final String category;
+  final String? definition;
 }
 
 class GameSession {
@@ -329,6 +334,7 @@ class RoundResult {
     required this.pointsEarned,
     required this.totalScore,
     required this.currentStreak,
+    this.wordMeaning,
   });
 
   final RoundResultType type;
@@ -338,11 +344,13 @@ class RoundResult {
   final int pointsEarned;
   final int totalScore;
   final int currentStreak;
+  final String? wordMeaning;
 
   factory RoundResult.fromSession(
     GameSession session, {
     required int totalScore,
     required int currentStreak,
+    String? wordMeaning,
   }) {
     return RoundResult(
       type: session.outcome == SessionOutcome.won
@@ -354,6 +362,7 @@ class RoundResult {
       pointsEarned: session.completionPoints,
       totalScore: totalScore,
       currentStreak: currentStreak,
+      wordMeaning: wordMeaning,
     );
   }
 }

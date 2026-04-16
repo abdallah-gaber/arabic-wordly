@@ -1,8 +1,9 @@
 import 'package:arabic_wordly/features/game/application/game_providers.dart';
 import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
+import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
-import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/daily_mode_repository.dart';
+import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -23,6 +24,7 @@ class GameController extends AsyncNotifier<GameViewState> {
   bool _isMutating = false;
 
   GameLocalRepository get _repository => ref.read(gameRepositoryProvider);
+  ArabicPuzzleBank get _puzzleBank => ref.read(puzzleBankProvider);
   DateTime get _now => ref.read(clockProvider)();
 
   @override
@@ -163,6 +165,7 @@ class GameController extends AsyncNotifier<GameViewState> {
                 nextSession,
                 totalScore: updatedStats.totalScore,
                 currentStreak: updatedStats.currentStreak,
+                wordMeaning: _wordMeaningFor(nextSession),
               ),
             ),
           );
@@ -187,6 +190,7 @@ class GameController extends AsyncNotifier<GameViewState> {
                 nextSession,
                 totalScore: updatedStats.totalScore,
                 currentStreak: updatedStats.currentStreak,
+                wordMeaning: _wordMeaningFor(nextSession),
               ),
             ),
           );
@@ -328,6 +332,7 @@ class GameController extends AsyncNotifier<GameViewState> {
               current.session,
               totalScore: (await _repository.restoreStats()).totalScore,
               currentStreak: (await _repository.restoreStats()).currentStreak,
+              wordMeaning: _wordMeaningFor(current.session),
             ),
           ),
         );
@@ -370,7 +375,12 @@ class GameController extends AsyncNotifier<GameViewState> {
             session,
             totalScore: stats.totalScore,
             currentStreak: stats.currentStreak,
+            wordMeaning: _wordMeaningFor(session),
           );
+  }
+
+  String? _wordMeaningFor(GameSession session) {
+    return _puzzleBank.definitionForAnswer(session.mode, session.answer);
   }
 
   PlayerStats _recordStats(

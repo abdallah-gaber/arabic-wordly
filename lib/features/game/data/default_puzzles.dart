@@ -445,6 +445,28 @@ Map<GameMode, List<ArabicPuzzle>> buildDefaultPuzzles() {
 
 List<ArabicPuzzle> _category(String category, List<String> words) {
   return words
-      .map((word) => ArabicPuzzle(word: word, category: category))
+      .map(
+        (word) => ArabicPuzzle(
+          word: word,
+          category: category,
+          definition: _definitionForWord(word, category),
+        ),
+      )
       .toList(growable: false);
+}
+
+String _definitionForWord(String word, String category) {
+  const customDefinitions = <String, String>{
+    'حديقة': 'مساحة مزروعة تضم نباتات وأزهاراً وتُستخدم للراحة أو التنزه.',
+    'مدرسة': 'مكان مخصص للتعلّم والدراسة يجتمع فيه الطلاب مع المعلمين.',
+    'مكتبة': 'مكان تُجمع فيه الكتب والمراجع للقراءة أو الاستعارة.',
+    'جامعة': 'مؤسسة تعليم عالٍ تقدم تخصصات أكاديمية ومهنية متنوعة.',
+    'بحيرة': 'مسطح مائي تحيط به اليابسة من الجهات المختلفة.',
+    'مدينة': 'منطقة سكانية كبيرة تضم أحياءً وخدمات ومرافق متعددة.',
+    'مسجد': 'مكان مخصص للصلاة والعبادة عند المسلمين.',
+    'تفاحات': 'جمع تفاحة، وهي ثمرة معروفة بطعمها الحلو أو الحامض.',
+  };
+
+  return customDefinitions[word] ??
+      '$word كلمة من فئة $category، وتُستخدم في هذا التحدي كمدخل لغوي للتعلّم والتذكّر.';
 }

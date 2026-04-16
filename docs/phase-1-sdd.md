@@ -34,15 +34,15 @@ This document serves as the Software Design Document (SDD) and Task List for Pha
 
 #### S4: Word Meaning Reveal
 **Goal:** Show definitions/context after solving the puzzle.
-- [ ] **Domain:** Expand the bundled `word_bank` or dictionary JSON to include a definition or context string per target word, OR fetch from a local fallback list.
-- [ ] **Tests (Unit):** Verify the `GameController` or `stats` domain can serve a valid definition object string for a given word.
-- [ ] **UI:** Expand the End Game summary dialog to showcase this 'Educational Fact' cleanly.
-- [ ] **Tests (Widget):** Verify the definition text populates correctly on win/loss states.
+- [x] **Domain:** Expand the bundled `word_bank` or dictionary JSON to include a definition or context string per target word, OR fetch from a local fallback list.
+- [x] **Tests (Unit):** Verify the `GameController` or `stats` domain can serve a valid definition object string for a given word.
+- [x] **UI:** Expand the End Game summary dialog to showcase this 'Educational Fact' cleanly.
+- [x] **Tests (Widget):** Verify the definition text populates correctly on win/loss states.
 
 #### S5: Image Share for Help & Results
 **Goal:** Generate and share an elegant branded screenshot (including game name, icon, puzzle, category, and status) instead of just emoji text. Allow "Share to get help" if stuck.
-- [ ] **Domain/UI:** Integrate a widget-to-image package (or use `RepaintBoundary`) to capture a custom off-screen widget containing all relevant data cleanly formatted.
-- [ ] **Tests (Unit):** Ensure screenshot saving logic caches file to temporary directory before sharing.
+- [x] **Domain/UI:** Integrate a widget-to-image package (or use `RepaintBoundary`) to capture a custom off-screen widget containing all relevant data cleanly formatted.
+- [x] **Tests (Unit):** Ensure screenshot saving logic caches file to temporary directory before sharing.
 
 ---
 
@@ -92,3 +92,15 @@ Once implemented:
 3. Accept the prompt and verify the app requests local notification permission from the OS.
 4. Play another round and confirm the reminder schedule is refreshed instead of stacking duplicate reminders.
 5. Decline the prompt on a fresh install and verify the app continues normally without crashing or blocking navigation.
+
+#### S4: Word Meaning Reveal
+1. Solve a puzzle and confirm the end-of-round dialog shows a `معنى الكلمة` card beneath the summary.
+2. Lose a puzzle and confirm the same definition/context panel still appears.
+3. Verify the definition text matches the solved word instead of the category label alone.
+
+#### S5: Image Share For Help & Results
+1. Solve a round and confirm the result dialog now offers `مشاركة صورة` in addition to the text share action.
+2. Tap `مشاركة صورة` and verify a branded image is shared that includes the game name, mode, category, status, and puzzle grid.
+3. Start a round, make at least one guess, and confirm `شارك للمساعدة بصورة` becomes available in the input area.
+4. Tap the help share action and verify the generated image shares current progress without revealing the answer.
+5. On device, repeat the share flow and confirm the image is generated successfully from a temporary file path rather than failing inline.

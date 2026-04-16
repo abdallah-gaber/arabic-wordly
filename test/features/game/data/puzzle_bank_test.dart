@@ -46,5 +46,18 @@ void main() {
         containsAll(['أمر', 'امر']),
       );
     });
+
+    test('returns a definition or context string for a known answer', () {
+      final bank = ArabicPuzzleBank.defaults();
+
+      final definition = bank.definitionForAnswer(
+        GameMode.fiveLetters,
+        'حديقة',
+      );
+
+      expect(definition, isNotNull);
+      expect(definition, isNotEmpty);
+      expect(definition, contains('مساحة'));
+    });
   });
 }

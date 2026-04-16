@@ -50,6 +50,10 @@ class ArabicPuzzleBank {
     return puzzleForAnswer(mode, answer)?.category;
   }
 
+  String? definitionForAnswer(GameMode mode, String answer) {
+    return puzzleForAnswer(mode, answer)?.definition;
+  }
+
   ArabicPuzzle pickRandom(GameMode mode, Random random, {String? excluding}) {
     final normalizedExcluding = excluding == null
         ? null
@@ -93,6 +97,7 @@ class ArabicPuzzleBank {
         category: puzzle.category.trim().isEmpty
             ? 'كلمات عامة'
             : puzzle.category,
+        definition: puzzle.definition?.trim(),
       );
     }
 

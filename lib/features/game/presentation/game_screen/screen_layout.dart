@@ -17,6 +17,7 @@ class _GameLayout extends StatelessWidget {
     required this.onSubmitGuess,
     required this.onSkipPuzzle,
     required this.onUseHint,
+    required this.onShareHelp,
     required this.typingMode,
     required this.showPinnedVerifyBar,
   });
@@ -36,6 +37,7 @@ class _GameLayout extends StatelessWidget {
   final Future<void> Function() onSubmitGuess;
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
+  final Future<void> Function() onShareHelp;
   final bool typingMode;
   final bool showPinnedVerifyBar;
 
@@ -116,6 +118,7 @@ class _GameLayout extends StatelessWidget {
                     onSubmitGuess: onSubmitGuess,
                     onSkipPuzzle: onSkipPuzzle,
                     onUseHint: onUseHint,
+                    onShareHelp: onShareHelp,
                     layoutProfile: layoutProfile,
                     typingMode: typingMode,
                     showPinnedVerifyBar: showPinnedVerifyBar,

@@ -1,6 +1,8 @@
 import 'dart:math';
 
 import 'package:arabic_wordly/app/services/notification_service.dart';
+import 'package:arabic_wordly/app/services/share_image_service.dart';
+import 'package:arabic_wordly/app/services/share_sheet_service.dart';
 import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
 import 'package:arabic_wordly/features/game/data/key_value_store.dart';
 import 'package:arabic_wordly/features/game/data/local_daily_mode_repository.dart';
@@ -19,6 +21,12 @@ final randomProvider = Provider<Random>((ref) => Random());
 final clockProvider = Provider<Clock>((ref) => DateTime.now);
 final notificationServiceProvider = Provider<NotificationService>(
   (ref) => const NoopNotificationService(),
+);
+final shareImageServiceProvider = Provider<ShareImageService>(
+  (ref) => ShareImageService(),
+);
+final shareSheetServiceProvider = Provider<ShareSheetService>(
+  (ref) => const SharePlusSheetService(),
 );
 
 final puzzleBankProvider = Provider<ArabicPuzzleBank>(
