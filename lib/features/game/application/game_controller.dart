@@ -1,6 +1,8 @@
 import 'package:arabic_wordly/features/game/application/game_providers.dart';
 import 'package:arabic_wordly/features/game/data/game_local_repository.dart';
+import 'package:arabic_wordly/features/game/data/puzzle_bank.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
+import 'package:arabic_wordly/features/game/domain/daily_mode_repository.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
@@ -9,28 +11,90 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 export 'game_providers.dart';
 
 final gameControllerProvider =
-    AsyncNotifierProvider.family<GameController, GameViewState, GameMode>(
+    AsyncNotifierProvider.family<GameController, GameViewState, GameConfig>(
       GameController.new,
     );
 
 class GameController extends AsyncNotifier<GameViewState> {
-  GameController(this.mode);
+  GameController(this.config);
 
-  final GameMode mode;
+  final GameConfig config;
+  GameMode get mode => config.mode;
+  GameTrack get track => config.track;
   bool _isMutating = false;
 
   GameLocalRepository get _repository => ref.read(gameRepositoryProvider);
+  ArabicPuzzleBank get _puzzleBank => ref.read(puzzleBankProvider);
   DateTime get _now => ref.read(clockProvider)();
 
   @override
   Future<GameViewState> build() async {
-    final session = await _repository.restoreOrCreateSession(mode);
+    final session = await _loadSession();
     final stats = await _repository.restoreStats();
     return GameViewState(
       session: session,
       feedback: _feedbackForSession(session),
       pendingResult: _pendingResultForSession(session, stats: stats),
     );
+  }
+
+  Future<GameSession> _loadSession() async {
+    if (track == GameTrack.daily) {
+      final dailyRepo = ref.read(dailyModeRepositoryProvider);
+      final dailyProgress = await dailyRepo.restoreProgress(
+        mode: mode,
+        date: _now,
+      );
+      if (dailyProgress != null) {
+        return _toSession(dailyProgress);
+      }
+      final todayPuzzle = await dailyRepo.puzzleForDate(mode: mode, date: _now);
+      return GameSession(
+        round: 1,
+        mode: mode,
+        answer: todayPuzzle.answer,
+        category: todayPuzzle.category,
+        guesses: const [],
+        revealedHintIndexes: const [],
+        startedAtEpochMs: _now.millisecondsSinceEpoch,
+      );
+    } else {
+      return _repository.restoreOrCreateSession(mode);
+    }
+  }
+
+  GameSession _toSession(DailyProgress progress) {
+    return GameSession(
+      round: 1,
+      mode: progress.mode,
+      answer: progress.answer,
+      category: progress.category,
+      guesses: progress.guesses,
+      revealedHintIndexes: progress.revealedHintIndexes,
+      completionPoints: progress.pointsEarned,
+      startedAtEpochMs: _now.millisecondsSinceEpoch,
+    );
+  }
+
+  Future<void> _saveSession(GameSession session) async {
+    if (track == GameTrack.daily) {
+      final dailyRepo = ref.read(dailyModeRepositoryProvider);
+      final dateKey =
+          '${_now.year}-${_now.month.toString().padLeft(2, '0')}-${_now.day.toString().padLeft(2, '0')}';
+      await dailyRepo.saveProgress(
+        DailyProgress(
+          mode: session.mode,
+          dateKey: dateKey,
+          answer: session.answer,
+          category: session.category,
+          guesses: session.guesses,
+          revealedHintIndexes: session.revealedHintIndexes,
+          pointsEarned: session.completionPoints,
+        ),
+      );
+    } else {
+      await _repository.saveSession(session);
+    }
   }
 
   Future<bool> submitGuess(String rawGuess) async {
@@ -64,7 +128,7 @@ class GameController extends AsyncNotifier<GameViewState> {
 
       switch (nextSession.outcome) {
         case SessionOutcome.inProgress:
-          await _repository.saveSession(nextSession);
+          await _saveSession(nextSession);
           state = AsyncData(
             current.copyWith(
               session: nextSession,
@@ -87,8 +151,11 @@ class GameController extends AsyncNotifier<GameViewState> {
             pointsEarned: pointsEarned,
           );
           nextSession = nextSession.copyWith(completionPoints: pointsEarned);
-          await _repository.saveSession(nextSession);
+          await _saveSession(nextSession);
           await _repository.saveStats(updatedStats);
+          await ref
+              .read(notificationServiceProvider)
+              .scheduleDailyStreakReminder(lastActiveAt: _now);
           ref.invalidate(playerStatsProvider);
           state = AsyncData(
             current.copyWith(
@@ -98,6 +165,7 @@ class GameController extends AsyncNotifier<GameViewState> {
                 nextSession,
                 totalScore: updatedStats.totalScore,
                 currentStreak: updatedStats.currentStreak,
+                wordMeaning: _wordMeaningFor(nextSession),
               ),
             ),
           );
@@ -108,8 +176,11 @@ class GameController extends AsyncNotifier<GameViewState> {
             completion: RoundCompletion.lost,
             pointsEarned: 0,
           );
-          await _repository.saveSession(nextSession);
+          await _saveSession(nextSession);
           await _repository.saveStats(updatedStats);
+          await ref
+              .read(notificationServiceProvider)
+              .scheduleDailyStreakReminder(lastActiveAt: _now);
           ref.invalidate(playerStatsProvider);
           state = AsyncData(
             current.copyWith(
@@ -119,6 +190,7 @@ class GameController extends AsyncNotifier<GameViewState> {
                 nextSession,
                 totalScore: updatedStats.totalScore,
                 currentStreak: updatedStats.currentStreak,
+                wordMeaning: _wordMeaningFor(nextSession),
               ),
             ),
           );
@@ -200,6 +272,16 @@ class GameController extends AsyncNotifier<GameViewState> {
 
     _isMutating = true;
     try {
+      if (track == GameTrack.daily) {
+        state = AsyncData(
+          GameViewState(
+            session: current.session, // preserve current
+            feedback: 'لا يمكنك تخطي اللغز اليومي.',
+          ),
+        );
+        return;
+      }
+
       final existingStats = await _repository.restoreStats();
       final updatedStats = _recordStats(
         existingStats,
@@ -208,12 +290,16 @@ class GameController extends AsyncNotifier<GameViewState> {
         pointsEarned: 0,
       );
       await _repository.saveStats(updatedStats);
+      await ref
+          .read(notificationServiceProvider)
+          .scheduleDailyStreakReminder(lastActiveAt: _now);
       ref.invalidate(playerStatsProvider);
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
         excluding: current.session.answer,
       );
+      await _saveSession(nextSession);
       state = AsyncData(
         GameViewState(
           session: nextSession,
@@ -237,11 +323,28 @@ class GameController extends AsyncNotifier<GameViewState> {
 
     _isMutating = true;
     try {
+      if (track == GameTrack.daily) {
+        state = AsyncData(
+          GameViewState(
+            session: current.session,
+            feedback: 'اكتمل اللغز اليومي. عد غداً لتحدي جديد!',
+            pendingResult: RoundResult.fromSession(
+              current.session,
+              totalScore: (await _repository.restoreStats()).totalScore,
+              currentStreak: (await _repository.restoreStats()).currentStreak,
+              wordMeaning: _wordMeaningFor(current.session),
+            ),
+          ),
+        );
+        return;
+      }
+
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
         excluding: current.session.answer,
       );
+      await _saveSession(nextSession);
       state = AsyncData(
         GameViewState(
           session: nextSession,
@@ -272,7 +375,12 @@ class GameController extends AsyncNotifier<GameViewState> {
             session,
             totalScore: stats.totalScore,
             currentStreak: stats.currentStreak,
+            wordMeaning: _wordMeaningFor(session),
           );
+  }
+
+  String? _wordMeaningFor(GameSession session) {
+    return _puzzleBank.definitionForAnswer(session.mode, session.answer);
   }
 
   PlayerStats _recordStats(

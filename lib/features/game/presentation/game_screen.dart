@@ -3,12 +3,15 @@ import 'dart:math';
 
 import 'package:arabic_wordly/app/app_branding.dart';
 import 'package:arabic_wordly/app/services/app_haptics.dart';
+import 'package:arabic_wordly/app/services/share_image_service.dart';
+import 'package:arabic_wordly/app/services/share_sheet_service.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
+import 'package:arabic_wordly/features/game/domain/share_result_formatter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -23,26 +26,33 @@ part 'game_screen/screen_grid.dart';
 part 'game_screen/screen_dialogs.dart';
 
 class GameScreen extends StatelessWidget {
-  const GameScreen({super.key, required this.mode});
+  const GameScreen({
+    super.key,
+    required this.mode,
+    this.track = GameTrack.endless,
+  });
 
   final GameMode mode;
+  final GameTrack track;
 
   @override
   Widget build(BuildContext context) {
-    return _GameScreenView(mode: mode);
+    return _GameScreenView(mode: mode, track: track);
   }
 }
 
 class _GameScreenView extends ConsumerStatefulWidget {
-  const _GameScreenView({required this.mode});
+  const _GameScreenView({required this.mode, required this.track});
 
   final GameMode mode;
+  final GameTrack track;
 
   @override
   ConsumerState<_GameScreenView> createState() => _GameScreenState();
 }
 
 class _GameScreenState extends ConsumerState<_GameScreenView> {
+  GameConfig get _config => GameConfig(mode: widget.mode, track: widget.track);
   late final TextEditingController _guessController;
   late final FocusNode _guessFocusNode;
   late final Timer _hintTimer;
@@ -110,7 +120,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     }
 
     final accepted = await ref
-        .read(gameControllerProvider(widget.mode).notifier)
+        .read(gameControllerProvider(_config).notifier)
         .submitGuess(_guessController.text);
 
     if (!mounted) {
@@ -119,10 +129,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     FocusScope.of(context).unfocus();
     if (accepted) {
-      final nextState = ref
-          .read(gameControllerProvider(widget.mode))
-          .asData
-          ?.value;
+      final nextState = ref.read(gameControllerProvider(_config)).asData?.value;
       if (nextState?.pendingResult == null) {
         unawaited(AppHaptics.lightImpact());
       }
@@ -146,25 +153,22 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   Future<void> _skipPuzzle() async {
     FocusScope.of(context).unfocus();
     _guessController.clear();
-    await ref.read(gameControllerProvider(widget.mode).notifier).skipPuzzle();
+    await ref.read(gameControllerProvider(_config).notifier).skipPuzzle();
     unawaited(AppHaptics.mediumImpact());
   }
 
   Future<void> _useHint() async {
     FocusScope.of(context).unfocus();
     final currentState = ref
-        .read(gameControllerProvider(widget.mode))
+        .read(gameControllerProvider(_config))
         .asData
         ?.value;
     final previousRevealedCount =
         currentState?.session.revealedHintIndexes.length ?? 0;
     final used = await ref
-        .read(gameControllerProvider(widget.mode).notifier)
+        .read(gameControllerProvider(_config).notifier)
         .useHint();
-    final nextState = ref
-        .read(gameControllerProvider(widget.mode))
-        .asData
-        ?.value;
+    final nextState = ref.read(gameControllerProvider(_config)).asData?.value;
     final nextRevealedCount =
         nextState?.session.revealedHintIndexes.length ?? 0;
     if (used && nextRevealedCount > previousRevealedCount) {
@@ -174,7 +178,58 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     }
   }
 
-  Future<void> _showRoundResultDialog(RoundResult result) async {
+  Future<void> _shareCurrentProgressForHelp() async {
+    final current = ref.read(gameControllerProvider(_config)).asData?.value;
+    if (current == null || !mounted) {
+      return;
+    }
+
+    final imagePath = await ref
+        .read(shareImageServiceProvider)
+        .createShareImage(
+          ShareImageCardData(
+            variant: ShareImageVariant.help,
+            track: _config.track,
+            mode: current.session.mode,
+            category: current.session.category,
+            guesses: current.session.guesses,
+            evaluationAnswer: current.session.answer,
+            statusTitle: 'أحتاج مساعدة',
+            statusSubtitle:
+                '${current.session.guesses.length} من ${ArabicWordRules.maxAttempts} محاولات',
+            footer: 'شاركني اقتراحك التالي في خمنها.',
+          ),
+        );
+
+    if (!mounted) {
+      return;
+    }
+
+    final box = context.findRenderObject() as RenderBox?;
+    final rect = box != null ? box.localToGlobal(Offset.zero) & box.size : null;
+    try {
+      await ref
+          .read(shareSheetServiceProvider)
+          .shareFiles(
+            [imagePath],
+            text:
+                'أنا عالق في ${_config.track.label} | ${current.session.mode.label}. من لديه اقتراح؟',
+            sharePositionOrigin: rect,
+          );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('تعذّر مشاركة الصورة الآن.')),
+      );
+    }
+  }
+
+  Future<void> _showRoundResultDialog(
+    RoundResult result,
+    GameSession session,
+  ) async {
     if (_isResultDialogOpen || !mounted) {
       return;
     }
@@ -188,7 +243,11 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       barrierColor: Colors.black.withValues(alpha: 0.28),
       transitionDuration: const Duration(milliseconds: 280),
       pageBuilder: (context, animation, secondaryAnimation) {
-        return _RoundResultDialog(result: result);
+        return _RoundResultDialog(
+          result: result,
+          session: session,
+          track: _config.track,
+        );
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final curve = CurvedAnimation(
@@ -207,13 +266,63 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     _isResultDialogOpen = false;
 
+    if (result.type == RoundResultType.won) {
+      await _maybePromptForNotifications();
+    }
+
     if (!mounted || shouldAdvance != true) {
       return;
     }
 
     await ref
-        .read(gameControllerProvider(widget.mode).notifier)
+        .read(gameControllerProvider(_config).notifier)
         .continueToNextPuzzle();
+  }
+
+  Future<void> _maybePromptForNotifications() async {
+    final notificationService = ref.read(notificationServiceProvider);
+    final shouldPrompt = await notificationService.shouldPromptForPermission();
+    if (!mounted || !shouldPrompt) {
+      return;
+    }
+
+    await notificationService.markPermissionPromptSeen();
+    final enableNotifications =
+        await showDialog<bool>(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('ذكّرني بالمحافظة على السلسلة'),
+              content: const Text(
+                'بعد أول فوز، يمكننا إرسال تذكير هادئ بعد 24 ساعة حتى لا تنقطع السلسلة.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('لاحقاً'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('فعّل التذكير'),
+                ),
+              ],
+            );
+          },
+        ) ??
+        false;
+
+    if (!mounted || !enableNotifications) {
+      return;
+    }
+
+    final granted = await notificationService.requestPermission();
+    if (!granted) {
+      return;
+    }
+
+    await notificationService.scheduleDailyStreakReminder(
+      lastActiveAt: ref.read(clockProvider)(),
+    );
   }
 
   int get _currentLetterCount =>
@@ -234,7 +343,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
   @override
   Widget build(BuildContext context) {
-    final gameState = ref.watch(gameControllerProvider(widget.mode));
+    final gameState = ref.watch(gameControllerProvider(_config));
     final playerStats = ref.watch(playerStatsProvider).asData?.value;
     final now = ref.read(clockProvider)();
     final typingMode = _typingModeFor(context);
@@ -243,7 +352,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     );
     final bottomContentPadding =
         20.0 + (showPinnedVerifyBar ? _PinnedVerifyBar.barHeight + 16.0 : 0.0);
-    ref.listen(gameControllerProvider(widget.mode), (previous, next) {
+    ref.listen(gameControllerProvider(_config), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
       if (nextResult != null && !identical(previousResult, nextResult)) {
@@ -253,7 +362,10 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
               : AppHaptics.failure(),
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          _showRoundResultDialog(nextResult);
+          final nextSession = next.asData?.value.session;
+          if (nextSession != null) {
+            _showRoundResultDialog(nextResult, nextSession);
+          }
         });
       }
     });
@@ -261,7 +373,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(child: _GameBackground()),
+          Positioned.fill(child: _GameBackground(track: widget.track)),
           GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () => FocusScope.of(context).unfocus(),
@@ -297,6 +409,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                               ),
                               child: _GameLayout(
                                 session: viewState.session,
+                                track: widget.track,
                                 playerStats: playerStats ?? const PlayerStats(),
                                 feedback:
                                     viewState.feedback ??
@@ -313,6 +426,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                                 onSubmitGuess: _submitGuess,
                                 onSkipPuzzle: _skipPuzzle,
                                 onUseHint: _useHint,
+                                onShareHelp: _shareCurrentProgressForHelp,
                                 typingMode: typingMode,
                                 showPinnedVerifyBar: showPinnedVerifyBar,
                               ),

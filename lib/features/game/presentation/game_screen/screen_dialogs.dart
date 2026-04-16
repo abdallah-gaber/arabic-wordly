@@ -1,9 +1,15 @@
 part of 'package:arabic_wordly/features/game/presentation/game_screen.dart';
 
 class _RoundResultDialog extends StatelessWidget {
-  const _RoundResultDialog({required this.result});
+  const _RoundResultDialog({
+    required this.result,
+    required this.session,
+    required this.track,
+  });
 
   final RoundResult result;
+  final GameSession session;
+  final GameTrack track;
 
   @override
   Widget build(BuildContext context) {
@@ -140,19 +146,209 @@ class _RoundResultDialog extends StatelessWidget {
                               title: summaryTitle,
                               body: summaryBody,
                             ),
+                            if (result.wordMeaning != null &&
+                                result.wordMeaning!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 12),
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFFF7E8),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(
+                                    color: const Color(0xFFE8D49A),
+                                  ),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Icon(
+                                          Icons.menu_book_rounded,
+                                          color: Color(0xFF8A6410),
+                                          size: 20,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'معنى الكلمة',
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .titleSmall
+                                              ?.copyWith(
+                                                color: const Color(0xFF8A6410),
+                                                fontWeight: FontWeight.w900,
+                                              ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      result.wordMeaning!,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodyMedium
+                                          ?.copyWith(
+                                            color: const Color(0xFF5D635F),
+                                            fontWeight: FontWeight.w600,
+                                            height: 1.45,
+                                          ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
                             const SizedBox(height: 16),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton.icon(
-                                onPressed: () =>
-                                    Navigator.of(context).pop(true),
+                                onPressed: () {
+                                  if (track == GameTrack.daily) {
+                                    Navigator.of(context).pop(false);
+                                  } else {
+                                    Navigator.of(context).pop(true);
+                                  }
+                                },
                                 icon: Icon(
-                                  isWin
+                                  track == GameTrack.daily
+                                      ? Icons.home_rounded
+                                      : isWin
                                       ? Icons.arrow_forward_rounded
                                       : Icons.refresh_rounded,
                                 ),
                                 label: Text(
-                                  isWin ? 'التالي' : 'جرب لغزاً جديداً',
+                                  track == GameTrack.daily
+                                      ? 'العودة للقائمة'
+                                      : isWin
+                                      ? 'التالي'
+                                      : 'جرب لغزاً جديداً',
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final imagePath =
+                                      await ProviderScope.containerOf(
+                                            context,
+                                            listen: false,
+                                          )
+                                          .read(shareImageServiceProvider)
+                                          .createShareImage(
+                                            ShareImageCardData(
+                                              variant: ShareImageVariant.result,
+                                              track: track,
+                                              mode: session.mode,
+                                              category: session.category,
+                                              guesses: session.guesses,
+                                              answer: session.answer,
+                                              statusTitle: isWin
+                                                  ? 'تم حل اللغز'
+                                                  : 'انتهت الجولة',
+                                              statusSubtitle: isWin
+                                                  ? '${result.attemptsUsed} / ${ArabicWordRules.maxAttempts} محاولات'
+                                                  : 'محاولاتك ${result.attemptsUsed} / ${ArabicWordRules.maxAttempts}',
+                                              footer: isWin
+                                                  ? 'شارك النتيجة وتحدّ أصحابك.'
+                                                  : 'شارك الصورة واطلب رأياً للجولة القادمة.',
+                                            ),
+                                          );
+                                  final box =
+                                      context.findRenderObject() as RenderBox?;
+                                  final rect = box != null
+                                      ? box.localToGlobal(Offset.zero) &
+                                            box.size
+                                      : null;
+                                  try {
+                                    await ProviderScope.containerOf(
+                                          context,
+                                          listen: false,
+                                        )
+                                        .read(shareSheetServiceProvider)
+                                        .shareFiles(
+                                          [imagePath],
+                                          text:
+                                              ShareResultFormatter.formatCompletedRound(
+                                                track: track,
+                                                mode: session.mode,
+                                                answer: session.answer,
+                                                guesses: session.guesses,
+                                              ),
+                                          sharePositionOrigin: rect,
+                                        );
+                                  } catch (_) {
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'تعذّرت مشاركة الصورة الآن.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.image_outlined),
+                                label: const Text('مشاركة صورة'),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                    color: accent.withValues(alpha: 0.65),
+                                  ),
+                                  foregroundColor: color,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () async {
+                                  final text =
+                                      ShareResultFormatter.formatCompletedRound(
+                                        track: track,
+                                        mode: session.mode,
+                                        answer: session.answer,
+                                        guesses: session.guesses,
+                                      );
+                                  final box =
+                                      context.findRenderObject() as RenderBox?;
+                                  final rect = box != null
+                                      ? box.localToGlobal(Offset.zero) &
+                                            box.size
+                                      : null;
+                                  try {
+                                    await ProviderScope.containerOf(
+                                          context,
+                                          listen: false,
+                                        )
+                                        .read(shareSheetServiceProvider)
+                                        .shareText(
+                                          text,
+                                          sharePositionOrigin: rect,
+                                        );
+                                  } catch (_) {
+                                    if (!context.mounted) {
+                                      return;
+                                    }
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text(
+                                          'تعذّرت المشاركة النصية الآن.',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                icon: const Icon(Icons.ios_share_rounded),
+                                label: const Text('مشاركة نصية'),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(
+                                    color: accent.withValues(alpha: 0.65),
+                                  ),
+                                  foregroundColor: color,
                                 ),
                               ),
                             ),

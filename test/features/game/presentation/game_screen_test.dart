@@ -1,3 +1,6 @@
+import 'package:arabic_wordly/app/services/notification_service.dart';
+import 'package:arabic_wordly/app/services/share_image_service.dart';
+import 'package:arabic_wordly/app/services/share_sheet_service.dart';
 import 'package:arabic_wordly/app/app.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
@@ -15,6 +18,9 @@ void main() {
 
   group('GameScreen', () {
     testWidgets('opens first to mode selection', (tester) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
@@ -30,10 +36,16 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
-      expect(find.text('3 أحرف'), findsOneWidget);
-      expect(find.text('4 أحرف'), findsOneWidget);
-      expect(find.text('5 أحرف'), findsOneWidget);
-      expect(find.text('6 أحرف'), findsOneWidget);
+      // Since it's a PageView centered on page 2 (5 letters), the adjacent pages (4, 6) will be rendered.
+      expect(find.text('⚖️ متوازن'), findsOneWidget);
+      expect(find.text('🧠 كلاسيكي'), findsOneWidget);
+      expect(find.text('🔥 تحدي'), findsOneWidget);
+
+      // Swipe right to reveal 3 letters
+      await tester.ensureVisible(find.text('🧠 كلاسيكي'));
+      await tester.drag(find.byType(PageView), const Offset(400, 0));
+      await tester.pumpAndSettle();
+      expect(find.text('⚡ سريع'), findsOneWidget);
     });
 
     testWidgets('fits on a phone-sized viewport without layout overflow', (
@@ -74,7 +86,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('الوضع الحالي: 6 أحرف'), findsOneWidget);
+      expect(find.text('الوضع الحالي: 🔥 تحدي'), findsOneWidget);
       expect(find.text('ابدأ التخمين'), findsOneWidget);
       expect(find.text('0 / 6'), findsOneWidget);
       expect(tester.takeException(), isNull);
@@ -94,9 +106,30 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('الوضع الحالي: 3 أحرف'), findsOneWidget);
+      expect(find.text('الوضع الحالي: ⚡ سريع'), findsOneWidget);
       expect(find.text('0 / 3'), findsOneWidget);
     });
+
+    testWidgets(
+      'highlights the daily challenge track with a dedicated header',
+      (tester) async {
+        await tester.pumpWidget(
+          gameScreenTestApp(
+            store: InMemoryKeyValueStore(),
+            random: FixedRandom(0),
+            mode: GameMode.fiveLetters,
+            track: GameTrack.daily,
+            clock: clock.call,
+          ),
+        );
+
+        await tester.pumpAndSettle();
+
+        expect(find.text('التحدي اليومي'), findsOneWidget);
+        expect(find.text('اليوم في 🧠 كلاسيكي'), findsOneWidget);
+        expect(find.text('كلمة واحدة مشتركة للجميع اليوم.'), findsOneWidget);
+      },
+    );
 
     testWidgets('loads directly into the current puzzle for a new user', (
       tester,
@@ -333,9 +366,24 @@ void main() {
 
       expect(find.text('أحسنت!'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      expect(find.text('معنى الكلمة'), findsOneWidget);
+      expect(
+        find.text(
+          'مساحة مزروعة تضم نباتات وأزهاراً وتُستخدم للراحة أو التنزه.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('+244 نقطة'), findsOneWidget);
       expect(find.text('المجموع 244'), findsOneWidget);
       expect(find.text('السلسلة الحالية: 1'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة صورة'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة نصية'),
+        findsOneWidget,
+      );
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
@@ -395,7 +443,22 @@ void main() {
 
       expect(find.text('انتهت المحاولات'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+      expect(find.text('معنى الكلمة'), findsOneWidget);
+      expect(
+        find.text(
+          'مساحة مزروعة تضم نباتات وأزهاراً وتُستخدم للراحة أو التنزه.',
+        ),
+        findsOneWidget,
+      );
       expect(find.text('اقتربت من الإجابة هذه المرة'), findsOneWidget);
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة صورة'),
+        findsOneWidget,
+      );
+      expect(
+        find.widgetWithText(OutlinedButton, 'مشاركة نصية'),
+        findsOneWidget,
+      );
 
       await tester.ensureVisible(
         find.widgetWithText(ElevatedButton, 'جرب لغزاً جديداً'),
@@ -486,5 +549,217 @@ void main() {
         );
       },
     );
+
+    testWidgets('shows the 🔥 streak badge only when streak > 0', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(
+        const Size(800, 800),
+      ); // Non-compact layout
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]), // answers: حديقة -> مكتبة
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      // Streak starts at 0 -> no fire badge.
+      expect(find.text('🔥'), findsNothing);
+
+      // Solve first puzzle.
+      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tester.pumpAndSettle();
+
+      // Tap Next to begin puzzle #2.
+      await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
+      await tester.pumpAndSettle();
+
+      // Streak is now 1 -> fire badge is visible.
+      expect(find.text('🔥'), findsOneWidget);
+    });
+
+    testWidgets('prompts for notification permission after the first win', (
+      tester,
+    ) async {
+      final notifications = _FakeNotificationService();
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+          notificationService: notifications,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
+      await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ذكّرني بالمحافظة على السلسلة'), findsOneWidget);
+      expect(notifications.markPromptSeenCount, 1);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'فعّل التذكير'));
+      await tester.pumpAndSettle();
+
+      expect(notifications.requestPermissionCount, 1);
+      expect(notifications.scheduledReminders, hasLength(2));
+      expect(find.text('المحاولة الحالية'), findsOneWidget);
+    });
+
+    testWidgets('shares a branded image from the solved result dialog', (
+      tester,
+    ) async {
+      final shareImageService = _FakeShareImageService();
+      final shareSheetService = _FakeShareSheetService();
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+          shareImageService: shareImageService,
+          shareSheetService: shareSheetService,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tester.pump();
+      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(
+        find.widgetWithText(OutlinedButton, 'مشاركة صورة'),
+      );
+      await tester.tap(find.widgetWithText(OutlinedButton, 'مشاركة صورة'));
+      await tester.pumpAndSettle();
+
+      expect(shareImageService.createCalls, 1);
+      expect(shareSheetService.sharedFiles, hasLength(1));
+      expect(shareSheetService.sharedFiles.single, [
+        '/tmp/fake-share-image.png',
+      ]);
+    });
+
+    testWidgets(
+      'shares current progress for help once the player has guessed',
+      (tester) async {
+        final shareImageService = _FakeShareImageService();
+        final shareSheetService = _FakeShareSheetService();
+
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+
+        await tester.pumpWidget(
+          gameScreenTestApp(
+            store: InMemoryKeyValueStore(),
+            random: FixedRandom(0),
+            mode: GameMode.fiveLetters,
+            clock: clock.call,
+            shareImageService: shareImageService,
+            shareSheetService: shareSheetService,
+          ),
+        );
+
+        await tester.pumpAndSettle();
+        await tester.showKeyboard(find.byType(TextField));
+        await tester.pumpAndSettle();
+        await tester.enterText(find.byType(TextField), 'مكتبة');
+        await tester.pump();
+        await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+        await tester.pumpAndSettle();
+
+        await tester.ensureVisible(
+          find.widgetWithText(OutlinedButton, 'شارك للمساعدة بصورة'),
+        );
+        await tester.tap(
+          find.widgetWithText(OutlinedButton, 'شارك للمساعدة بصورة'),
+        );
+        await tester.pumpAndSettle();
+
+        expect(shareImageService.createCalls, 1);
+        expect(shareSheetService.sharedFiles, hasLength(1));
+      },
+    );
   });
+}
+
+class _FakeNotificationService implements NotificationService {
+  int markPromptSeenCount = 0;
+  int requestPermissionCount = 0;
+  final List<DateTime> scheduledReminders = <DateTime>[];
+
+  @override
+  Future<void> initialize() async {}
+
+  @override
+  Future<void> markPermissionPromptSeen() async {
+    markPromptSeenCount++;
+  }
+
+  @override
+  Future<bool> requestPermission() async {
+    requestPermissionCount++;
+    return true;
+  }
+
+  @override
+  Future<void> scheduleDailyStreakReminder({
+    required DateTime lastActiveAt,
+  }) async {
+    scheduledReminders.add(lastActiveAt);
+  }
+
+  @override
+  Future<bool> shouldPromptForPermission() async {
+    return markPromptSeenCount == 0;
+  }
+}
+
+class _FakeShareImageService extends ShareImageService {
+  _FakeShareImageService() : super();
+
+  int createCalls = 0;
+
+  @override
+  Future<String> createShareImage(ShareImageCardData data) async {
+    createCalls++;
+    return '/tmp/fake-share-image.png';
+  }
+}
+
+class _FakeShareSheetService implements ShareSheetService {
+  final List<List<String>> sharedFiles = <List<String>>[];
+  final List<String> sharedTexts = <String>[];
+
+  @override
+  Future<void> shareFiles(
+    List<String> paths, {
+    String? text,
+    Rect? sharePositionOrigin,
+  }) async {
+    sharedFiles.add(paths);
+  }
+
+  @override
+  Future<void> shareText(String text, {Rect? sharePositionOrigin}) async {
+    sharedTexts.add(text);
+  }
 }

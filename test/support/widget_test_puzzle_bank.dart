@@ -14,13 +14,25 @@ final ArabicPuzzleBank widgetTestPuzzleBank = ArabicPuzzleBank({
     const ArabicPuzzle(word: 'وردة', category: 'النباتات'),
   ],
   GameMode.fiveLetters: [
-    const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
-    const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
-    const ArabicPuzzle(word: 'مكتبة', category: 'القراءة'),
+    const ArabicPuzzle(
+      word: 'حديقة',
+      category: 'الطبيعة',
+      definition: 'مساحة مزروعة تضم نباتات وأزهاراً وتُستخدم للراحة أو التنزه.',
+    ),
+    const ArabicPuzzle(
+      word: 'مدرسة',
+      category: 'التعليم',
+      definition: 'مكان مخصص للتعلّم والدراسة يجتمع فيه الطلاب مع المعلمين.',
+    ),
+    const ArabicPuzzle(
+      word: 'مكتبة',
+      category: 'القراءة',
+      definition: 'مكان تُجمع فيه الكتب والمراجع للقراءة أو الاستعارة.',
+    ),
   ],
   GameMode.sixLetters: [
-    const ArabicPuzzle(word: 'سيارات', category: 'المواصلات'),
-    const ArabicPuzzle(word: 'مدارسك', category: 'التعليم'),
-    const ArabicPuzzle(word: 'تفاحات', category: 'الفواكه'),
+    const ArabicPuzzle(word: 'برنامج', category: 'التعليم'),
+    const ArabicPuzzle(word: 'قنديل', category: 'المنزل'),
+    const ArabicPuzzle(word: 'تمثال', category: 'الفنون'),
   ],
 });

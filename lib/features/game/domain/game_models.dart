@@ -11,6 +11,20 @@ import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
 
 enum LetterMatch { correct, present, absent }
 
+class GameConfig {
+  const GameConfig({required this.mode, this.track = GameTrack.endless});
+  final GameMode mode;
+  final GameTrack track;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GameConfig && mode == other.mode && track == other.track;
+
+  @override
+  int get hashCode => Object.hash(mode, track);
+}
+
 enum SessionOutcome { inProgress, won, lost }
 
 enum RoundResultType { won, lost }
@@ -88,7 +102,12 @@ enum GameMode {
     GameMode.sixLetters => '6',
   };
 
-  String get label => '$wordLength أحرف';
+  String get label => switch (this) {
+    GameMode.threeLetters => '⚡ سريع',
+    GameMode.fourLetters => '⚖️ متوازن',
+    GameMode.fiveLetters => '🧠 كلاسيكي',
+    GameMode.sixLetters => '🔥 تحدي',
+  };
 
   String get description => switch (this) {
     GameMode.threeLetters => 'سريع وخفيف للبدايات.',
@@ -120,10 +139,15 @@ class EvaluatedGuess {
 }
 
 class ArabicPuzzle {
-  const ArabicPuzzle({required this.word, required this.category});
+  const ArabicPuzzle({
+    required this.word,
+    required this.category,
+    this.definition,
+  });
 
   final String word;
   final String category;
+  final String? definition;
 }
 
 class GameSession {
@@ -310,6 +334,7 @@ class RoundResult {
     required this.pointsEarned,
     required this.totalScore,
     required this.currentStreak,
+    this.wordMeaning,
   });
 
   final RoundResultType type;
@@ -319,11 +344,13 @@ class RoundResult {
   final int pointsEarned;
   final int totalScore;
   final int currentStreak;
+  final String? wordMeaning;
 
   factory RoundResult.fromSession(
     GameSession session, {
     required int totalScore,
     required int currentStreak,
+    String? wordMeaning,
   }) {
     return RoundResult(
       type: session.outcome == SessionOutcome.won
@@ -335,6 +362,7 @@ class RoundResult {
       pointsEarned: session.completionPoints,
       totalScore: totalScore,
       currentStreak: currentStreak,
+      wordMeaning: wordMeaning,
     );
   }
 }
