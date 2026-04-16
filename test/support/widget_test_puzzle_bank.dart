@@ -31,8 +31,8 @@ final ArabicPuzzleBank widgetTestPuzzleBank = ArabicPuzzleBank({
     ),
   ],
   GameMode.sixLetters: [
-    const ArabicPuzzle(word: 'سيارات', category: 'المواصلات'),
-    const ArabicPuzzle(word: 'مدارسك', category: 'التعليم'),
-    const ArabicPuzzle(word: 'تفاحات', category: 'الفواكه'),
+    const ArabicPuzzle(word: 'برنامج', category: 'التعليم'),
+    const ArabicPuzzle(word: 'قنديل', category: 'المنزل'),
+    const ArabicPuzzle(word: 'تمثال', category: 'الفنون'),
   ],
 });

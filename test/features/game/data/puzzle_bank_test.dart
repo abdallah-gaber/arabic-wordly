@@ -4,21 +4,33 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   group('ArabicPuzzleBank', () {
-    test('ships with at least 100 puzzles in every mode', () {
+    test('ships with the exact planned number of puzzles in every mode', () {
       final bank = ArabicPuzzleBank.defaults();
+      const expectedCounts = <GameMode, int>{
+        GameMode.threeLetters: 500,
+        GameMode.fourLetters: 400,
+        GameMode.fiveLetters: 300,
+        GameMode.sixLetters: 200,
+      };
 
-      for (final mode in GameMode.values) {
+      for (final mode in expectedCounts.keys) {
         final puzzles = bank.puzzlesForMode(mode);
         expect(
           puzzles.length,
-          greaterThanOrEqualTo(100),
-          reason: 'Mode ${mode.name} only has ${puzzles.length} puzzles.',
+          expectedCounts[mode],
+          reason: 'Mode ${mode.name} has ${puzzles.length} puzzles.',
         );
 
         expect(
           puzzles.every((puzzle) => puzzle.category.trim().isNotEmpty),
           isTrue,
           reason: 'Mode ${mode.name} has puzzles with empty categories.',
+        );
+
+        expect(
+          puzzles.every((puzzle) => !_hasAttachedPronoun(puzzle.word)),
+          isTrue,
+          reason: 'Mode ${mode.name} has words with attached pronouns.',
         );
       }
     });
@@ -60,4 +72,21 @@ void main() {
       expect(definition, contains('مساحة'));
     });
   });
+}
+
+bool _hasAttachedPronoun(String word) {
+  const suffixes = <String>[
+    'كما',
+    'كم',
+    'كن',
+    'هم',
+    'هن',
+    'ها',
+    'نا',
+    'ك',
+    'ه',
+  ];
+  return suffixes.any(
+    (suffix) => word.length > suffix.length + 1 && word.endsWith(suffix),
+  );
 }
