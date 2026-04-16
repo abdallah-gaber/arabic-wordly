@@ -4,10 +4,11 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 
 import 'package:arabic_wordly/app/app_branding.dart';
-import 'package:characters/characters.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
+import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 enum ShareImageVariant { result, help }
@@ -99,15 +100,17 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
   static const Color _teal = Color(0xFF157A6E);
   static const Color _gold = Color(0xFFE0A93B);
   static const Color _surface = Color(0xFFFFFCF6);
+  static const String _appIconAssetPath = 'assets/icons/app_icon.png';
 
   @override
   Future<Uint8List> render(ShareImageCardData data) async {
+    final appIcon = await _loadAppIcon();
     final recorder = ui.PictureRecorder();
     final canvas = Canvas(recorder, const Rect.fromLTWH(0, 0, _width, _height));
 
     _paintBackground(canvas, data);
     _paintCard(canvas);
-    _paintBrand(canvas);
+    _paintBrand(canvas, appIcon);
     _paintHeader(canvas, data);
     _paintGrid(canvas, data);
     _paintFooter(canvas, data);
@@ -118,6 +121,17 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     );
     final bytes = await image.toByteData(format: ui.ImageByteFormat.png);
     return bytes!.buffer.asUint8List();
+  }
+
+  Future<ui.Image?> _loadAppIcon() async {
+    try {
+      final asset = await rootBundle.load(_appIconAssetPath);
+      final codec = await ui.instantiateImageCodec(asset.buffer.asUint8List());
+      final frame = await codec.getNextFrame();
+      return frame.image;
+    } catch (_) {
+      return null;
+    }
   }
 
   void _paintBackground(Canvas canvas, ShareImageCardData data) {
@@ -164,51 +178,78 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     );
   }
 
-  void _paintBrand(Canvas canvas) {
+  void _paintBrand(Canvas canvas, ui.Image? appIcon) {
     final badgeRect = RRect.fromRectAndRadius(
-      const Rect.fromLTWH(_padding, 94, 120, 120),
+      const Rect.fromLTWH(_width - _padding - 120, 94, 120, 120),
       const Radius.circular(30),
     );
-    canvas.drawRRect(badgeRect, Paint()..color = _teal);
-    _paintText(
-      canvas,
-      'خ',
-      const Offset(_padding + 40, 116),
-      fontSize: 54,
-      color: Colors.white,
-      fontWeight: FontWeight.w900,
+    canvas.drawRRect(badgeRect, Paint()..color = Colors.white);
+    canvas.drawRRect(
+      badgeRect,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFFE6DAC0),
     );
+    if (appIcon != null) {
+      canvas.save();
+      canvas.clipRRect(badgeRect);
+      paintImage(
+        canvas: canvas,
+        rect: badgeRect.outerRect,
+        image: appIcon,
+        fit: BoxFit.cover,
+      );
+      canvas.restore();
+    } else {
+      canvas.drawRRect(badgeRect, Paint()..color = _teal);
+      _paintText(
+        canvas,
+        'خ',
+        Offset(_width - _padding - 60, 116),
+        fontSize: 54,
+        color: Colors.white,
+        fontWeight: FontWeight.w900,
+        anchorCenter: true,
+      );
+    }
     _paintText(
       canvas,
       appNameArabic,
-      const Offset(_padding + 148, 108),
+      const Offset(_width - _padding - 148, 108),
       fontSize: 52,
       color: _ink,
       fontWeight: FontWeight.w900,
+      textAlign: TextAlign.right,
+      maxWidth: 340,
+      anchorRight: true,
     );
     _paintText(
       canvas,
       appNameEnglish,
-      const Offset(_padding + 150, 165),
+      const Offset(_width - _padding - 148, 168),
       fontSize: 28,
       color: _teal,
       fontWeight: FontWeight.w800,
       textDirection: TextDirection.ltr,
+      textAlign: TextAlign.right,
+      maxWidth: 320,
+      anchorRight: true,
     );
   }
 
   void _paintHeader(Canvas canvas, ShareImageCardData data) {
     _paintPill(
       canvas,
-      label: data.track.label,
-      rect: const Rect.fromLTWH(_padding, 255, 250, 58),
+      label: 'المسار: ${_trackShareLabel(data.track)}',
+      rect: const Rect.fromLTWH(_width - _padding - 260, 255, 260, 58),
       background: const Color(0xFFEAF3F0),
       foreground: _teal,
     );
     _paintPill(
       canvas,
-      label: data.mode.label,
-      rect: const Rect.fromLTWH(338, 255, 280, 58),
+      label: 'الوضع: ${_modeShareLabel(data.mode)}',
+      rect: const Rect.fromLTWH(_width - _padding - 560, 255, 270, 58),
       background: const Color(0xFFFFF2D2),
       foreground: const Color(0xFF8A6410),
     );
@@ -216,18 +257,24 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     _paintText(
       canvas,
       data.statusTitle,
-      const Offset(_padding, 344),
+      const Offset(_width - _padding, 344),
       fontSize: 56,
       color: _ink,
       fontWeight: FontWeight.w900,
+      textAlign: TextAlign.right,
+      maxWidth: _width - (_padding * 2),
+      anchorRight: true,
     );
     _paintText(
       canvas,
       data.statusSubtitle,
-      const Offset(_padding, 420),
+      const Offset(_width - _padding, 420),
       fontSize: 30,
       color: _muted,
       fontWeight: FontWeight.w700,
+      textAlign: TextAlign.right,
+      maxWidth: _width - (_padding * 2),
+      anchorRight: true,
     );
 
     final categoryRect = RRect.fromRectAndRadius(
@@ -245,10 +292,13 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     _paintText(
       canvas,
       'الفئة: ${data.category}',
-      const Offset(_padding + 30, 520),
+      Offset(_width - _padding - 30, 520),
       fontSize: 32,
       color: const Color(0xFF8A6410),
       fontWeight: FontWeight.w800,
+      textAlign: TextAlign.right,
+      maxWidth: _width - ((_padding + 30) * 2),
+      anchorRight: true,
     );
   }
 
@@ -273,11 +323,12 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
       for (var row = 0; row < data.guesses.length; row++) {
         final letters = data.guesses[row].characters.toList();
         for (var col = 0; col < math.min(cols, letters.length); col++) {
+          final visualCol = cols - 1 - col;
           _paintTile(
             canvas,
             letter: letters[col],
             rect: Rect.fromLTWH(
-              startX + (col * (tile + gap)),
+              startX + (visualCol * (tile + gap)),
               top + (row * (tile + gap)),
               tile,
               tile,
@@ -294,8 +345,9 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     for (var row = 0; row < rows.length; row++) {
       final guess = rows[row] as EvaluatedGuess;
       for (var col = 0; col < guess.letters.length; col++) {
+        final visualCol = cols - 1 - col;
         final tileRect = Rect.fromLTWH(
-          startX + (col * (tile + gap)),
+          startX + (visualCol * (tile + gap)),
           top + (row * (tile + gap)),
           tile,
           tile,
@@ -340,19 +392,36 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     _paintText(
       canvas,
       revealLine,
-      const Offset(_padding, 1220),
+      const Offset(_width - _padding, 1220),
       fontSize: 30,
       color: _muted,
       fontWeight: FontWeight.w700,
+      textAlign: TextAlign.right,
+      maxWidth: _width - (_padding * 2),
+      anchorRight: true,
     );
     _paintText(
       canvas,
       data.footer,
-      const Offset(_padding, 1280),
+      const Offset(_width - _padding, 1280),
       fontSize: 28,
       color: _teal,
       fontWeight: FontWeight.w800,
+      textAlign: TextAlign.right,
+      maxWidth: _width - (_padding * 2),
+      anchorRight: true,
     );
+  }
+
+  String _trackShareLabel(GameTrack track) {
+    return switch (track) {
+      GameTrack.daily => 'التحدي اليومي',
+      GameTrack.endless => 'المسار المفتوح',
+    };
+  }
+
+  String _modeShareLabel(GameMode mode) {
+    return '${mode.wordLength} أحرف';
   }
 
   void _paintPill(
@@ -417,6 +486,7 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     TextAlign textAlign = TextAlign.start,
     double? maxWidth,
     bool anchorCenter = false,
+    bool anchorRight = false,
   }) {
     final painter = TextPainter(
       text: TextSpan(
@@ -436,6 +506,8 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
 
     final paintOffset = anchorCenter
         ? Offset(offset.dx - (painter.width / 2), offset.dy)
+        : anchorRight
+        ? Offset(offset.dx - painter.width, offset.dy)
         : offset;
     painter.paint(canvas, paintOffset);
   }
