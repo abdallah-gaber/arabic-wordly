@@ -241,13 +241,23 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
   }
 
   void _paintHeader(Canvas canvas, ShareImageCardData data) {
-    const trackPillWidth = 220.0;
-    const modePillWidth = 170.0;
     const pillGap = 18.0;
+    final trackLabel = _trackShareLabel(data.track);
+    final modeLabel = _modeShareLabel(data.mode);
+    final trackPillWidth = math.max(
+      180.0,
+      _measureTextWidth(trackLabel, fontSize: 24, fontWeight: FontWeight.w800) +
+          56,
+    );
+    final modePillWidth = math.max(
+      132.0,
+      _measureTextWidth(modeLabel, fontSize: 24, fontWeight: FontWeight.w800) +
+          56,
+    );
     _paintPill(
       canvas,
-      label: _trackShareLabel(data.track),
-      rect: const Rect.fromLTWH(
+      label: trackLabel,
+      rect: Rect.fromLTWH(
         _width - _padding - trackPillWidth,
         255,
         trackPillWidth,
@@ -258,8 +268,8 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     );
     _paintPill(
       canvas,
-      label: _modeShareLabel(data.mode),
-      rect: const Rect.fromLTWH(
+      label: modeLabel,
+      rect: Rect.fromLTWH(
         _width - _padding - trackPillWidth - pillGap - modePillWidth,
         255,
         modePillWidth,
@@ -470,6 +480,7 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
       fontWeight: FontWeight.w800,
       textAlign: TextAlign.right,
       maxWidth: rect.width - 48,
+      anchorRight: true,
     );
   }
 
