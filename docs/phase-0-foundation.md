@@ -27,3 +27,4 @@
 
 > [!NOTE]
 > See [ROADMAP_RULES.md](./ROADMAP_RULES.md) for how this Phase should be executed.
+> The execution breakdown for this phase lives in [phase-0-sdd.md](./phase-0-sdd.md).
