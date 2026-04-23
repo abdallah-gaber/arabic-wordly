@@ -15,7 +15,7 @@
 - Mobile typing-mode UX with inline verify, pinned verify above keyboard, and compact focused layout
 - Riverpod architecture with automated coverage across domain, data, and UI
 
-This means the next milestone is not "make single-player real." It is "turn the current baseline into a polished public-ready release, then prepare for daily mode, identity, and multiplayer safely."
+Phase 1 growth work has already landed on `main`, but the original Phase 0 foundation polish pass was skipped in execution order and still needs to be completed. The current milestone is to close that foundation gap before moving deeper into later roadmap work.
 
 ## Locked product decisions
 
@@ -113,11 +113,11 @@ Do not let Firebase types leak into domain, controller, or presentation layers.
 
 ### Next slice
 
-**Early-game guidance and support balance**
+**Phase 0 foundation polish**
 
-- Improve the first-round guidance without trivializing the answer
-- Rebalance hint visibility and support cues
-- Make help systems feel supportive without stealing focus from the board
+- Add the missing solo-play quality-of-life behaviors from Phase 0
+- Tighten validation, persistence, and keyboard/layout stability
+- Restore the intended roadmap order before taking on deeper feature work
 
 ### Slice after that
 

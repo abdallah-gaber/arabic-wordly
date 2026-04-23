@@ -8,6 +8,7 @@ Start here for planning and technical context.
 |----------|---------|
 | [product-roadmap.md](product-roadmap.md) | Live product status, completed slices, next slice |
 | [phases.md](phases.md) | Phase-level roadmap and milestone order |
+| [phase-0-sdd.md](phase-0-sdd.md) | Phase 0 execution plan and task breakdown |
 | [architecture.md](architecture.md) | Layers, naming map, app shell, persistence, game flow |
 | [testing.md](testing.md) | Pre-commit checks, commands, coverage notes |
 | [project-structure-consistency-tracker.md](project-structure-consistency-tracker.md) | Structure/refactor checklist, branch-per-PR workflow, done vs todo |
