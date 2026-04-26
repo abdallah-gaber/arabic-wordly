@@ -41,6 +41,23 @@ void main() {
 
       expect(await service.shouldPromptForPermission(), isFalse);
     });
+
+    test(
+      'clears stale scheduled notifications once during initialization',
+      () async {
+        final platform = _FakeNotificationSchedulerPlatform();
+        final service = LocalNotificationService(
+          store: _InMemoryKeyValueStore(),
+          platform: platform,
+        );
+
+        await service.initialize();
+        await service.initialize();
+
+        expect(platform.cancelAllCount, 1);
+        expect(platform.initializeCount, 2);
+      },
+    );
   });
 }
 
@@ -49,6 +66,8 @@ class _FakeNotificationSchedulerPlatform
   final List<int> cancelledIds = <int>[];
   final List<_ScheduledNotification> scheduledNotifications =
       <_ScheduledNotification>[];
+  int cancelAllCount = 0;
+  int initializeCount = 0;
 
   @override
   bool get supportsNotifications => true;
@@ -59,7 +78,14 @@ class _FakeNotificationSchedulerPlatform
   }
 
   @override
-  Future<void> initialize() async {}
+  Future<void> cancelAll() async {
+    cancelAllCount++;
+  }
+
+  @override
+  Future<void> initialize() async {
+    initializeCount++;
+  }
 
   @override
   Future<bool> requestPermission() async => true;
