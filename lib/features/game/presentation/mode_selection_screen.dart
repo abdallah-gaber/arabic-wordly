@@ -331,59 +331,63 @@ class _ModeCard extends StatelessWidget {
           ),
           child: Padding(
             padding: EdgeInsets.all(compact ? 16 : 20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  mode.label,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    fontSize: compact ? 24 : null,
+            child: SingleChildScrollView(
+              physics: const NeverScrollableScrollPhysics(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    mode.label,
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      fontSize: compact ? 24 : null,
+                    ),
                   ),
-                ),
-                SizedBox(height: compact ? 6 : 8),
-                _ModeToneChip(mode: mode),
-                SizedBox(height: compact ? 8 : 10),
-                Text(
-                  mode.description,
-                  textAlign: TextAlign.center,
-                  style:
-                      (compact
-                              ? Theme.of(context).textTheme.bodySmall
-                              : Theme.of(context).textTheme.bodyMedium)
-                          ?.copyWith(color: const Color(0xFF5D635F)),
-                ),
-                SizedBox(height: compact ? 8 : 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    for (var index = 0; index < mode.wordLength; index++) ...[
-                      if (index > 0) SizedBox(width: compact ? 6 : 8),
-                      Container(
-                        width: compact ? 16 : 18,
-                        height: compact ? 16 : 18,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFFCF6),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: colorScheme.outlineVariant),
+                  SizedBox(height: compact ? 6 : 8),
+                  _ModeToneChip(mode: mode),
+                  SizedBox(height: compact ? 8 : 10),
+                  Text(
+                    mode.description,
+                    textAlign: TextAlign.center,
+                    style:
+                        (compact
+                                ? Theme.of(context).textTheme.bodySmall
+                                : Theme.of(context).textTheme.bodyMedium)
+                            ?.copyWith(color: const Color(0xFF5D635F)),
+                  ),
+                  SizedBox(height: compact ? 8 : 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      for (var index = 0; index < mode.wordLength; index++) ...[
+                        if (index > 0) SizedBox(width: compact ? 6 : 8),
+                        Container(
+                          width: compact ? 16 : 18,
+                          height: compact ? 16 : 18,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFFFCF6),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: colorScheme.outlineVariant),
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
-                ),
-                SizedBox(height: compact ? 8 : 10),
-                Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _ModeStatPill(label: 'النقاط ${stats.totalScore}'),
-                    _ModeStatPill(label: 'تم الحل ${stats.solved}'),
-                  ],
-                ),
-              ],
+                  ),
+                  SizedBox(height: compact ? 8 : 10),
+                  Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _ModeStatPill(label: 'النقاط ${stats.totalScore}'),
+                      _ModeStatPill(label: 'تم الحل ${stats.solved}'),
+                    ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),

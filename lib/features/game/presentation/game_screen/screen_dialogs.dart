@@ -27,10 +27,17 @@ class _RoundResultDialog extends StatelessWidget {
     final summaryTitle = isWin
         ? 'السلسلة الحالية: ${result.currentStreak}'
         : 'اقتربت من الإجابة هذه المرة';
-    final summaryBody = isWin
+    final isDaily = track == GameTrack.daily;
+    final summaryBody = isDaily
+        ? isWin
+              ? 'أنهيت تحدي اليوم بنجاح. ارجع غداً لتجد كلمة جديدة للجميع.'
+              : 'انتهى تحدي اليوم لهذه الجولة. ارجع غداً لمحاولة جديدة.'
+        : isWin
         ? 'حافظ على الإيقاع، فالجولة التالية فرصة لرفع السلسلة أكثر.'
         : 'ارجع مباشرة إلى تحد جديد، وخذ الجولة القادمة كفرصة أسرع للعودة.';
-    final actionHint = isWin
+    final actionHint = isDaily
+        ? 'يمكنك الآن الرجوع إلى شاشة التحديات ومتابعة أوضاع اللعب الأخرى.'
+        : isWin
         ? 'استمر الآن قبل أن يبرد الإيقاع.'
         : 'جرّب جولة جديدة فوراً ولا تكسر الحماس.';
 
@@ -203,22 +210,22 @@ class _RoundResultDialog extends StatelessWidget {
                               width: double.infinity,
                               child: ElevatedButton.icon(
                                 onPressed: () {
-                                  if (track == GameTrack.daily) {
+                                  if (isDaily) {
                                     Navigator.of(context).pop(false);
                                   } else {
                                     Navigator.of(context).pop(true);
                                   }
                                 },
                                 icon: Icon(
-                                  track == GameTrack.daily
+                                  isDaily
                                       ? Icons.home_rounded
                                       : isWin
                                       ? Icons.arrow_forward_rounded
                                       : Icons.refresh_rounded,
                                 ),
                                 label: Text(
-                                  track == GameTrack.daily
-                                      ? 'العودة للقائمة'
+                                  isDaily
+                                      ? 'العودة للتحديات'
                                       : isWin
                                       ? 'التالي'
                                       : 'جرب لغزاً جديداً',

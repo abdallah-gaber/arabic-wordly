@@ -242,7 +242,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     _isResultDialogOpen = true;
 
-    final shouldAdvance = await showGeneralDialog<bool>(
+    final dialogAction = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
       barrierLabel: 'round-result',
@@ -276,7 +276,16 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       await _maybePromptForNotifications();
     }
 
-    if (!mounted || shouldAdvance != true) {
+    if (!mounted) {
+      return;
+    }
+
+    if (widget.track == GameTrack.daily && dialogAction == false) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (dialogAction != true) {
       return;
     }
 

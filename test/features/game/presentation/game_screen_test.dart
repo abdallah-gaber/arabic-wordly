@@ -182,6 +182,85 @@ void main() {
       },
     );
 
+    testWidgets('daily win exits back to mode selection instead of offering next puzzle', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final store = InMemoryKeyValueStore();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            keyValueStoreProvider.overrideWithValue(store),
+            randomProvider.overrideWithValue(FixedRandom(0)),
+            puzzleBankProvider.overrideWithValue(widgetTestPuzzleBank),
+            clockProvider.overrideWithValue(clock.call),
+          ],
+          child: const ArabicWordlyApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('التحدي اليومي'));
+      await tester.tap(find.text('التحدي اليومي'));
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'مكتبة');
+      await tapSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('التالي'), findsNothing);
+      expect(find.text('العودة للتحديات'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'العودة للتحديات'),
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'العودة للتحديات'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
+      expect(find.text('التحدي اليومي'), findsOneWidget);
+    });
+
+    testWidgets('daily loss exits back to mode selection instead of offering next puzzle', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final store = InMemoryKeyValueStore();
+      await store.setString(
+        'daily_progress_5_2026-04-02',
+        '{"mode":"5","dateKey":"2026-04-02","answer":"مكتبة","category":"القراءة","guesses":["حديقة","مدرسة","دحيقة","قحيدة","حقدية","ديحقة"],"revealedHintIndexes":[],"pointsEarned":0}',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            keyValueStoreProvider.overrideWithValue(store),
+            randomProvider.overrideWithValue(FixedRandom(0)),
+            puzzleBankProvider.overrideWithValue(widgetTestPuzzleBank),
+            clockProvider.overrideWithValue(clock.call),
+          ],
+          child: const ArabicWordlyApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('التحدي اليومي'));
+      await tester.tap(find.text('التحدي اليومي'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('التالي'), findsNothing);
+      expect(find.text('العودة للتحديات'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'العودة للتحديات'),
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'العودة للتحديات'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
+    });
+
     testWidgets('loads directly into the current puzzle for a new user', (
       tester,
     ) async {
