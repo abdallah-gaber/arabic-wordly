@@ -42,6 +42,13 @@ void main() {
     await tester.pump();
   }
 
+  Color tileFaceColor(WidgetTester tester, int row, int column) {
+    final container = tester.widget<AnimatedContainer>(
+      find.byKey(ValueKey('guess-tile-face-$row-$column')),
+    );
+    return (container.decoration as BoxDecoration).color!;
+  }
+
   group('GameScreen', () {
     testWidgets('opens first to mode selection', (tester) async {
       await tester.binding.setSurfaceSize(const Size(900, 900));
@@ -329,6 +336,33 @@ void main() {
 
       expect(find.text('أحسنت!'), findsOneWidget);
       expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+    });
+
+    testWidgets('reveals solved tiles in a staggered flip sequence', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حديقة');
+      await tapSubmit(tester);
+
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(tileFaceColor(tester, 0, 0), const Color(0xFF157A6E));
+      expect(tileFaceColor(tester, 0, 4), Colors.white);
+
+      await tester.pump(const Duration(milliseconds: 240));
+      expect(tileFaceColor(tester, 0, 4), const Color(0xFF157A6E));
+
+      await tester.pumpAndSettle();
+      expect(find.text('أحسنت!'), findsOneWidget);
     });
 
     testWidgets('cancels a pending auto-submit when the guess is edited', (
