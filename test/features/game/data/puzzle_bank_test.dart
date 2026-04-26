@@ -71,6 +71,35 @@ void main() {
       expect(definition, isNotEmpty);
       expect(definition, contains('مساحة'));
     });
+
+    test('does not ship boilerplate meanings for uncatalogued words', () {
+      final bank = ArabicPuzzleBank.defaults();
+
+      final definition = bank.definitionForAnswer(
+        GameMode.fourLetters,
+        'هوكي',
+      );
+
+      expect(definition, isNull);
+    });
+
+    test('keeps curated technology content aligned', () {
+      final bank = ArabicPuzzleBank.defaults();
+
+      expect(bank.containsAnswer(GameMode.fiveLetters, 'فرامة'), isFalse);
+
+      final puzzle = bank.puzzleForAnswer(
+        GameMode.fiveLetters,
+        'مسبار',
+      );
+
+      expect(puzzle, isNotNull);
+      expect(puzzle!.category, 'التقنية');
+      expect(
+        puzzle.definition,
+        'أداة أو مركبة مزودة بأجهزة قياس تُستخدم لاستكشاف بيئة بعيدة وجمع البيانات.',
+      );
+    });
   });
 }
 
