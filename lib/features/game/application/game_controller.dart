@@ -121,6 +121,15 @@ class GameController extends AsyncNotifier<GameViewState> {
       return false;
     }
 
+    if (!_puzzleBank.containsWord(mode, guess)) {
+      state = AsyncData(
+        current.copyWith(
+          feedback: 'هذه الكلمة غير موجودة في بنك الكلمات الحالي.',
+        ),
+      );
+      return false;
+    }
+
     _isMutating = true;
     try {
       final existingStats = await _repository.restoreStats();

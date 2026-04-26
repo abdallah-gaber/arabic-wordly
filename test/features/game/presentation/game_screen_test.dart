@@ -98,6 +98,28 @@ void main() {
       expect(tester.takeException(), isNull);
     });
 
+    testWidgets('keeps the keyboard flow stable on a shorter phone viewport', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('game-arabic-keyboard')), findsOneWidget);
+      expect(find.text('0 / 5'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
     testWidgets('keeps the 6-letter mode readable on a phone-sized viewport', (
       tester,
     ) async {
@@ -387,6 +409,44 @@ void main() {
       expect(find.text('أحسنت!'), findsNothing);
       expect(find.text('4 / 5'), findsOneWidget);
       expect(find.text('حديق'), findsWidgets);
+    });
+
+    testWidgets('rejects a word outside the puzzle bank and shakes the row', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'سفينة');
+      await tester.pump();
+
+      final initialPosition = tester.getTopLeft(
+        find.byKey(const ValueKey('guess-tile-0-0')),
+      );
+
+      await tapSubmit(tester);
+      await tester.pump(const Duration(milliseconds: 60));
+
+      final shakenPosition = tester.getTopLeft(
+        find.byKey(const ValueKey('guess-tile-0-0')),
+      );
+
+      expect(find.text('هذه الكلمة غير موجودة في بنك الكلمات الحالي.'), findsOneWidget);
+      expect(shakenPosition.dx, isNot(initialPosition.dx));
+      expect(find.text('أحسنت!'), findsNothing);
+
+      await tester.pumpAndSettle();
+      final settledPosition = tester.getTopLeft(
+        find.byKey(const ValueKey('guess-tile-0-0')),
+      );
+      expect(settledPosition.dx, closeTo(initialPosition.dx, 0.01));
     });
 
     testWidgets('mirrors the typed guess in the active board row', (

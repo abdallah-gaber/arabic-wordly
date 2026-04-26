@@ -29,11 +29,13 @@ class ArabicPuzzleBank {
     ).map((puzzle) => puzzle.word).toList(growable: false);
   }
 
+  bool containsWord(GameMode mode, String word) {
+    final normalizedWord = ArabicWordRules.normalize(word);
+    return puzzlesForMode(mode).any((puzzle) => puzzle.word == normalizedWord);
+  }
+
   bool containsAnswer(GameMode mode, String answer) {
-    final normalizedAnswer = ArabicWordRules.normalize(answer);
-    return puzzlesForMode(
-      mode,
-    ).any((puzzle) => puzzle.word == normalizedAnswer);
+    return containsWord(mode, answer);
   }
 
   ArabicPuzzle? puzzleForAnswer(GameMode mode, String answer) {
