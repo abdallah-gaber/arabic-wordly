@@ -25,18 +25,20 @@ This document serves as the Software Design Document (SDD) and execution checkli
 
 ### 1. Core Gameplay Polish
 
-#### C1: Keyboard letter coloring
-**Goal:** Reflect used-letter feedback directly on the on-screen keyboard using the same result hierarchy already shown in the grid.
+#### C1: In-app Arabic keyboard
+**Goal:** Replace the system soft keyboard during gameplay with a game-owned Arabic keyboard that supports status coloring, disabled absent keys, and direct tap input.
 - [ ] **Domain/Application:** Define the keyboard-state mapping from submitted guesses to key status, with stable precedence so `correct` beats `present`, and `present` beats `absent`.
-- [ ] **Tests (Unit):** Cover repeated guesses, duplicate letters, and status upgrades so a key never regresses visually after better evidence.
-- [ ] **UI:** Render key colors consistently in the keyboard/input area across supported word lengths and game modes.
-- [ ] **Tests (Widget):** Verify representative keys change color after submissions and preserve the highest-earned status.
+- [ ] **Domain/Application:** Define the shipped Arabic key layout, plus rules for which keys become disabled after they are proven absent.
+- [ ] **Tests (Unit):** Cover repeated guesses, duplicate letters, status upgrades, and disabled-key edge cases so a key never regresses visually after better evidence.
+- [ ] **UI:** Replace the gameplay `TextField` input path with an in-app Arabic keyboard surface, letter insertion, backspace, and submit actions.
+- [ ] **UI:** Render key colors consistently across supported word lengths and game modes while keeping already-confirmed useful letters tappable.
+- [ ] **Tests (Widget):** Verify representative keys change color after submissions, preserve the highest-earned status, and absent-only keys become non-interactive.
 
 #### C2: Auto-submit on full word
-**Goal:** Reduce friction by automatically verifying a guess once the row reaches the required letter count.
-- [ ] **Application:** Add a debounced auto-submit path triggered only when the active guess reaches the exact target length.
+**Goal:** Reduce friction by automatically verifying a guess once the in-app keyboard fills the row to the required letter count.
+- [ ] **Application:** Add a debounced auto-submit path triggered only when the active guess reaches the exact target length from keyboard taps.
 - [ ] **Tests (Unit):** Verify auto-submit fires once per completed guess, cancels if the input changes before the delay completes, and does not fire for partial/overflow states.
-- [ ] **UI:** Keep manual verification behavior compatible with the new flow so there is still a safe fallback if auto-submit is disabled by state guards.
+- [ ] **UI:** Keep a visible manual verification fallback on the keyboard surface when auto-submit is blocked by state guards or timing.
 - [ ] **Tests (Widget):** Simulate typing a full guess and confirm submission occurs after the intended delay without duplicate submits.
 
 #### C3: Tile flip animation
@@ -52,8 +54,8 @@ This document serves as the Software Design Document (SDD) and execution checkli
 - [ ] **Behavior:** Keep the current error messaging aligned with the shake so both signals describe the same failure case.
 
 #### C5: Letter count progress dots
-**Goal:** Show lightweight progress toward a complete guess while typing.
-- [ ] **UI:** Add a small progress indicator near the input/composer that reflects entered-letter count against target length.
+**Goal:** Show lightweight progress toward a complete guess while using the in-app keyboard.
+- [ ] **UI:** Add a small progress indicator near the active input surface that reflects entered-letter count against target length.
 - [ ] **Tests (Widget):** Verify the indicator updates while typing, resets after submission, and adapts to different word lengths.
 
 ### 2. Stability & Bug Fixes
@@ -71,18 +73,18 @@ This document serves as the Software Design Document (SDD) and execution checkli
 - [ ] **Tests (Widget/Integration):** Recreate a partially played round, rebuild the screen/controller, and confirm the board/input/session restore cleanly.
 - [ ] **Implementation:** Tighten persistence timing without adding redundant writes that would hurt responsiveness.
 
-#### B3: Keyboard overlap fix
-**Goal:** Keep the active row and primary input flow visible while the software keyboard is open.
-- [ ] **UI/Layout:** Audit the current keyboard-aware layout behavior and remove cases where the keyboard obscures the active row or composer.
-- [ ] **Tests (Widget):** Cover common small-height mobile layouts and verify the active play area remains visible when `viewInsets.bottom` is applied.
-- [ ] **Behavior:** Preserve the existing compact typing mode and pinned verification affordance while removing overlap regressions.
+#### B3: Keyboard layout stability
+**Goal:** Keep the active row and primary input flow visible while the in-app keyboard is displayed.
+- [ ] **UI/Layout:** Rework the current keyboard-aware layout so the game-owned keyboard occupies stable space without obscuring the active row or composer.
+- [ ] **Tests (Widget):** Cover common small-height mobile layouts and verify the active play area remains visible with the in-app keyboard mounted.
+- [ ] **Behavior:** Preserve the compact play layout and primary verification affordance while removing overlap regressions.
 
 ---
 
 ## Suggested Delivery Order
 
 1. B1 word validation edge cases
-2. C1 keyboard letter coloring
+2. C1 in-app Arabic keyboard
 3. C4 invalid-word shake feedback
 4. C5 letter count progress dots
 5. C2 auto-submit on full word
@@ -95,7 +97,7 @@ This order starts with correctness and feedback primitives, then layers on inter
 ## Risks & Guardrails
 
 - Auto-submit can create duplicate verification events if it races with the manual submit path.
-- Keyboard coloring and validation normalization both need careful duplicate-letter coverage in Arabic word forms.
+- Keyboard status rules and disabled-key behavior both need careful duplicate-letter coverage in Arabic word forms.
 - Animation work must remain presentation-only and avoid coupling reveal timing to game-state correctness.
 - Persistence changes can easily become mode-specific regressions if endless and daily sessions do not share the same save lifecycle.
 
@@ -104,21 +106,23 @@ This order starts with correctness and feedback primitives, then layers on inter
 ## Verification & Manual Testing Guidelines
 
 Once implementation for this phase is complete:
-1. Play one full endless round and verify keyboard colors, progress dots, auto-submit, and reveal animations all feel coherent together.
+1. Play one full endless round and verify the in-app keyboard, key colors, progress dots, auto-submit, and reveal animations all feel coherent together.
 2. Enter an invalid word and confirm the row shake and validation message appear without corrupting the current input state.
 3. Start a round, background or kill the app, relaunch, and confirm the same in-progress board state is restored.
-4. Test on a small mobile viewport and confirm the active row plus input flow remain visible when the keyboard is open.
+4. Test on a small mobile viewport and confirm the active row plus input flow remain visible while the in-app keyboard is shown.
 5. Repeat the above on at least two word lengths to catch layout and validation differences.
 
 ## Manual Test Guide For Completed Phase 0 Items
 
-### C1: Keyboard letter coloring
-1. Start a new round and submit a guess containing at least one correct, one present, and one absent letter.
-2. Confirm the on-screen keyboard updates those letters with matching statuses.
-3. Submit another guess that upgrades a previously seen letter and confirm the key keeps the stronger status.
+### C1: In-app Arabic keyboard
+1. Start a new round and confirm the gameplay surface shows the app-owned Arabic keyboard instead of opening the system soft keyboard.
+2. Tap letters to build a guess, use backspace to remove one, and confirm the active input updates immediately.
+3. Submit a guess containing at least one correct, one present, and one absent letter.
+4. Confirm the keyboard updates those letters with matching statuses and that absent-only keys become unavailable when appropriate.
+5. Submit another guess that upgrades a previously seen letter and confirm the key keeps the stronger status.
 
 ### C2: Auto-submit on full word
-1. Type letters until the guess reaches the exact target length.
+1. Tap letters until the guess reaches the exact target length.
 2. Confirm the guess submits automatically after the short delay without requiring a tap.
 3. Type a final letter, then immediately edit the guess, and confirm the pending auto-submit does not fire incorrectly.
 
@@ -147,7 +151,7 @@ Once implementation for this phase is complete:
 2. Background the app, terminate it fully, then relaunch.
 3. Confirm the current puzzle, guesses, and active state resume from the saved session rather than resetting.
 
-### B3: Keyboard overlap fix
-1. Open a round on a phone-sized viewport and focus the input.
-2. Confirm the software keyboard does not cover the active row or the primary submit flow.
+### B3: Keyboard layout stability
+1. Open a round on a phone-sized viewport and confirm the in-app keyboard is visible without requiring focus.
+2. Confirm the keyboard does not cover the active row or the primary submit flow.
 3. Rotate or resize if applicable and verify the layout remains usable.
