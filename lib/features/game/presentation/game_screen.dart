@@ -85,6 +85,15 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       });
     }
 
+    final current = ref.read(gameControllerProvider(_config)).asData?.value;
+    if (current?.session.draftGuess != sanitized) {
+      unawaited(
+        ref.read(gameControllerProvider(_config).notifier).updateDraftGuess(
+          sanitized,
+        ),
+      );
+    }
+
     _syncAutoSubmit();
   }
 
@@ -394,6 +403,17 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     ref.listen(gameControllerProvider(_config), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
+      final nextSession = next.asData?.value.session;
+      if (nextSession != null &&
+          nextSession.draftGuess != _guessController.text &&
+          !_isResultDialogOpen) {
+        _guessController.value = TextEditingValue(
+          text: nextSession.draftGuess,
+          selection: TextSelection.collapsed(
+            offset: nextSession.draftGuess.length,
+          ),
+        );
+      }
       if (nextResult != null && !identical(previousResult, nextResult)) {
         unawaited(
           nextResult.type == RoundResultType.won
@@ -401,9 +421,9 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
               : AppHaptics.failure(),
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final nextSession = next.asData?.value.session;
-          if (nextSession != null) {
-            _showRoundResultDialog(nextResult, nextSession);
+          final resultSession = next.asData?.value.session;
+          if (resultSession != null) {
+            _showRoundResultDialog(nextResult, resultSession);
           }
         });
       }

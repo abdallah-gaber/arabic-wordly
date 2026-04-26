@@ -419,6 +419,55 @@ void main() {
       );
     });
 
+    testWidgets('restores a saved draft guess after rebuilding the screen', (
+      tester,
+    ) async {
+      final store = InMemoryKeyValueStore();
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: store,
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حد');
+      await tester.pumpAndSettle();
+
+      expect(find.text('حد'), findsWidgets);
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: store,
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('active-guess-display')), findsOneWidget);
+      expect(find.text('حد'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-0')),
+          matching: find.text('ح'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-1')),
+          matching: find.text('د'),
+        ),
+        findsOneWidget,
+      );
+    });
+
     testWidgets('strips non-Arabic characters from the guess field', (
       tester,
     ) async {

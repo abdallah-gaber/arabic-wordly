@@ -155,6 +155,7 @@ class GameSession {
     required this.round,
     required this.answer,
     required this.guesses,
+    this.draftGuess = '',
     this.category = '',
     this.mode = GameMode.fiveLetters,
     this.maxAttempts = ArabicWordRules.maxAttempts,
@@ -167,6 +168,7 @@ class GameSession {
   final int round;
   final String answer;
   final List<String> guesses;
+  final String draftGuess;
   final String category;
   final GameMode mode;
   final int maxAttempts;
@@ -238,7 +240,7 @@ class GameSession {
   }
 
   GameSession addGuess(String guess) {
-    return copyWith(guesses: [...guesses, guess]);
+    return copyWith(guesses: [...guesses, guess], draftGuess: '');
   }
 
   GameSession useHintAt(DateTime now, int index) {
@@ -268,6 +270,7 @@ class GameSession {
     int? round,
     String? answer,
     List<String>? guesses,
+    String? draftGuess,
     String? category,
     GameMode? mode,
     int? maxAttempts,
@@ -280,6 +283,7 @@ class GameSession {
       round: round ?? this.round,
       answer: answer ?? this.answer,
       guesses: guesses ?? this.guesses,
+      draftGuess: draftGuess ?? this.draftGuess,
       category: category ?? this.category,
       mode: mode ?? this.mode,
       maxAttempts: maxAttempts ?? this.maxAttempts,
@@ -296,6 +300,7 @@ class GameSession {
       'round': round,
       'answer': answer,
       'guesses': guesses,
+      'draftGuess': draftGuess,
       'category': category,
       'mode': mode.cacheKey,
       'maxAttempts': maxAttempts,
@@ -311,6 +316,7 @@ class GameSession {
       round: json['round'] as int? ?? 1,
       answer: json['answer'] as String? ?? '',
       guesses: List<String>.from(json['guesses'] as List<dynamic>? ?? const []),
+      draftGuess: json['draftGuess'] as String? ?? '',
       category: json['category'] as String? ?? '',
       mode: GameMode.fromCacheKey(json['mode'] as String? ?? '5'),
       maxAttempts: json['maxAttempts'] as int? ?? ArabicWordRules.maxAttempts,

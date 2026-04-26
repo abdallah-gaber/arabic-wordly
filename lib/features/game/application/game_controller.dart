@@ -202,6 +202,30 @@ class GameController extends AsyncNotifier<GameViewState> {
     }
   }
 
+  Future<void> updateDraftGuess(String rawGuess) async {
+    final current = state.asData?.value;
+    if (current == null || !current.session.canAcceptGuess) {
+      return;
+    }
+
+    final normalizedDraft = ArabicWordRules.sanitizeGuessInput(
+      rawGuess,
+      maxLength: current.session.wordLength,
+    );
+    if (normalizedDraft == current.session.draftGuess) {
+      return;
+    }
+
+    final nextSession = current.session.copyWith(draftGuess: normalizedDraft);
+    await _repository.saveSession(nextSession);
+    state = AsyncData(
+      current.copyWith(
+        session: nextSession,
+        clearPendingResult: true,
+      ),
+    );
+  }
+
   Future<bool> useHint() async {
     if (_isMutating) {
       return false;
