@@ -52,9 +52,11 @@ class _GameScreenView extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<_GameScreenView> {
   GameConfig get _config => GameConfig(mode: widget.mode, track: widget.track);
+  static const Duration _autoSubmitDelay = Duration(milliseconds: 300);
   late final TextEditingController _guessController;
   late final FocusNode _guessFocusNode;
   late final Timer _hintTimer;
+  Timer? _autoSubmitTimer;
   bool _isResultDialogOpen = false;
   bool _wasGuessReady = false;
   int _invalidGuessFeedbackTick = 0;
@@ -82,6 +84,8 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
         _wasGuessReady = isReady;
       });
     }
+
+    _syncAutoSubmit();
   }
 
   @override
@@ -100,6 +104,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   @override
   void dispose() {
     _guessController.removeListener(_handleGuessChanged);
+    _autoSubmitTimer?.cancel();
     _guessController.dispose();
     _guessFocusNode.dispose();
     _hintTimer.cancel();
@@ -107,6 +112,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   }
 
   Future<void> _submitGuess() async {
+    _autoSubmitTimer?.cancel();
     if (!_isGuessReady) {
       _triggerInvalidGuessFeedback();
       unawaited(AppHaptics.warning());
@@ -327,6 +333,24 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   bool _typingModeFor(BuildContext context) => false;
 
   bool _shouldShowPinnedVerifyBar({required bool typingMode}) => false;
+
+  void _syncAutoSubmit() {
+    _autoSubmitTimer?.cancel();
+    if (!_isGuessReady) {
+      return;
+    }
+
+    final scheduledGuess = _guessController.text;
+    _autoSubmitTimer = Timer(_autoSubmitDelay, () {
+      if (!mounted) {
+        return;
+      }
+      if (_guessController.text != scheduledGuess || !_isGuessReady) {
+        return;
+      }
+      unawaited(_submitGuess());
+    });
+  }
 
   void _appendLetter(String letter) {
     if (_currentLetterCount >= widget.mode.wordLength) {

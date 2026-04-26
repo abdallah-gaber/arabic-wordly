@@ -97,6 +97,7 @@ class _InputSectionState extends State<_InputSection> {
         ? const Color(0xFFF2FBF7)
         : const Color(0xFFFFFCF6);
     final countChip = Container(
+      key: const ValueKey('letter-count-chip'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: progressBackground,
@@ -113,6 +114,23 @@ class _InputSectionState extends State<_InputSection> {
           ),
         ),
       ),
+    );
+    final progressDots = Row(
+      key: const ValueKey('guess-progress-dots'),
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List<Widget>.generate(widget.mode.wordLength, (index) {
+        final isFilled = index < widget.currentLetterCount;
+        return Container(
+          key: ValueKey('guess-progress-dot-$index'),
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isFilled ? progressColor : const Color(0xFFD8D1C5),
+          ),
+        );
+      }),
     );
     final keyboardRows = GameKeyboard.buildKeys(
       guesses: widget.session.guesses,
@@ -213,6 +231,8 @@ class _InputSectionState extends State<_InputSection> {
                     ? const Color(0xFFCAE0D7)
                     : const Color(0xFFE3DDD1),
               ),
+              progressDots,
+              SizedBox(height: widget.dense ? 8 : 10),
               if (compactLayout)
                 Column(
                   children: [

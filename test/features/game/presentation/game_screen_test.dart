@@ -230,6 +230,50 @@ void main() {
       expect(find.text('3 / 5'), findsOneWidget);
     });
 
+    testWidgets('shows progress dots that fill as letters are tapped', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('guess-progress-dots')), findsOneWidget);
+
+      final initialDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-0')),
+      );
+      expect(
+        (initialDot.decoration as BoxDecoration).color,
+        const Color(0xFFD8D1C5),
+      );
+
+      await tapLetters(tester, 'حد');
+
+      final firstDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-0')),
+      );
+      final secondDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-1')),
+      );
+      final thirdDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-2')),
+      );
+      final fourthDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-3')),
+      );
+
+      expect((firstDot.decoration as BoxDecoration).color, const Color(0xFFC84F4F));
+      expect((secondDot.decoration as BoxDecoration).color, const Color(0xFFC84F4F));
+      expect((thirdDot.decoration as BoxDecoration).color, const Color(0xFFD8D1C5));
+      expect((fourthDot.decoration as BoxDecoration).color, const Color(0xFFD8D1C5));
+    });
+
     testWidgets(
       'keeps the keyboard submit action in sync with guess readiness',
       (tester) async {
@@ -265,6 +309,51 @@ void main() {
         );
       },
     );
+
+    testWidgets('auto-submits once the keyboard completes a valid guess', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حديقة');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.text('أحسنت!'), findsOneWidget);
+      expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+    });
+
+    testWidgets('cancels a pending auto-submit when the guess is edited', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حديقة');
+      await tester.pump(const Duration(milliseconds: 100));
+      await backspaceLetters(tester, 1);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(find.text('أحسنت!'), findsNothing);
+      expect(find.text('4 / 5'), findsOneWidget);
+      expect(find.text('حديق'), findsWidgets);
+    });
 
     testWidgets('mirrors the typed guess in the active board row', (
       tester,
