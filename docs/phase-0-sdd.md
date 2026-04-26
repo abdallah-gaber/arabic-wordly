@@ -101,6 +101,15 @@ This order starts with correctness and feedback primitives, then layers on inter
 - Animation work must remain presentation-only and avoid coupling reveal timing to game-state correctness.
 - Persistence changes can easily become mode-specific regressions if endless and daily sessions do not share the same save lifecycle.
 
+## Immediate Follow-Up After Phase 0
+
+These are intentionally queued after the remaining Phase 0 items, not inside them:
+
+1. **Daily challenge completion flow**
+   Fix the daily round result flow so a finished daily challenge does not present a misleading "next puzzle" action and always offers a clear exit path back to the broader app flow.
+2. **Word bank, categories, and meanings quality pass**
+   Review shipped puzzle words, category labels, and meaning text for accuracy and coherence. Replace mismatched category assignments and any placeholder or misleading definitions with curated content.
+
 ---
 
 ## Verification & Manual Testing Guidelines

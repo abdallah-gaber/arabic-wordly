@@ -121,11 +121,11 @@ Do not let Firebase types leak into domain, controller, or presentation layers.
 
 ### Slice after that
 
-**Daily mode and sharing UI**
+**Daily flow fixes and content quality pass**
 
-- Add the daily entry flow on top of the local daily foundations
-- Wire a real share action using the existing formatter
-- Keep daily progress visually separate from endless mode
+- Fix the daily challenge end-of-round flow so solved/lost daily runs do not offer an illogical "next puzzle" action and always provide a clear way back out
+- Revisit the bundled words, categories, and meanings for content quality, category fit, and definition accuracy
+- Replace placeholder or misleading meaning strings with curated explanations that match the actual word and category
 
 ### Later
 
