@@ -7,14 +7,13 @@ import 'package:arabic_wordly/app/services/share_image_service.dart';
 import 'package:arabic_wordly/app/services/share_sheet_service.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
+import 'package:arabic_wordly/features/game/domain/game_keyboard.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:arabic_wordly/features/game/domain/share_result_formatter.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'game_screen/screen_layout.dart';
@@ -89,12 +88,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   void initState() {
     super.initState();
     _guessController = TextEditingController();
-    _guessFocusNode = FocusNode()
-      ..addListener(() {
-        if (mounted) {
-          setState(() {});
-        }
-      });
+    _guessFocusNode = FocusNode();
     _guessController.addListener(_handleGuessChanged);
     _hintTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
@@ -127,7 +121,6 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       return;
     }
 
-    FocusScope.of(context).unfocus();
     if (accepted) {
       final nextState = ref.read(gameControllerProvider(_config)).asData?.value;
       if (nextState?.pendingResult == null) {
@@ -151,14 +144,12 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   }
 
   Future<void> _skipPuzzle() async {
-    FocusScope.of(context).unfocus();
     _guessController.clear();
     await ref.read(gameControllerProvider(_config).notifier).skipPuzzle();
     unawaited(AppHaptics.mediumImpact());
   }
 
   Future<void> _useHint() async {
-    FocusScope.of(context).unfocus();
     final currentState = ref
         .read(gameControllerProvider(_config))
         .asData
@@ -333,12 +324,36 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     wordLength: widget.mode.wordLength,
   );
 
-  bool _typingModeFor(BuildContext context) {
-    return _guessFocusNode.hasFocus;
+  bool _typingModeFor(BuildContext context) => false;
+
+  bool _shouldShowPinnedVerifyBar({required bool typingMode}) => false;
+
+  void _appendLetter(String letter) {
+    if (_currentLetterCount >= widget.mode.wordLength) {
+      return;
+    }
+
+    final nextValue = ArabicWordRules.sanitizeGuessInput(
+      '${_guessController.text}$letter',
+      maxLength: widget.mode.wordLength,
+    );
+    _guessController.value = TextEditingValue(
+      text: nextValue,
+      selection: TextSelection.collapsed(offset: nextValue.length),
+    );
   }
 
-  bool _shouldShowPinnedVerifyBar({required bool typingMode}) {
-    return typingMode && !kIsWeb;
+  void _removeLastLetter() {
+    final letters = ArabicWordRules.split(_guessController.text);
+    if (letters.isEmpty) {
+      return;
+    }
+
+    final nextValue = letters.take(letters.length - 1).join();
+    _guessController.value = TextEditingValue(
+      text: nextValue,
+      selection: TextSelection.collapsed(offset: nextValue.length),
+    );
   }
 
   @override
@@ -374,10 +389,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       body: Stack(
         children: [
           Positioned.fill(child: _GameBackground(track: widget.track)),
-          GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: SafeArea(
+          SafeArea(
               child: gameState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stackTrace) => Center(
@@ -427,6 +439,8 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                                 onSkipPuzzle: _skipPuzzle,
                                 onUseHint: _useHint,
                                 onShareHelp: _shareCurrentProgressForHelp,
+                                onTapLetter: _appendLetter,
+                                onBackspace: _removeLastLetter,
                                 typingMode: typingMode,
                                 showPinnedVerifyBar: showPinnedVerifyBar,
                               ),
@@ -439,7 +453,6 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                 ),
               ),
             ),
-          ),
           if (showPinnedVerifyBar)
             Positioned(
               left: 16,

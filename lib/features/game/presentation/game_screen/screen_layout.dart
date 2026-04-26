@@ -18,6 +18,8 @@ class _GameLayout extends StatelessWidget {
     required this.onSkipPuzzle,
     required this.onUseHint,
     required this.onShareHelp,
+    required this.onTapLetter,
+    required this.onBackspace,
     required this.typingMode,
     required this.showPinnedVerifyBar,
   });
@@ -38,6 +40,8 @@ class _GameLayout extends StatelessWidget {
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
   final Future<void> Function() onShareHelp;
+  final ValueChanged<String> onTapLetter;
+  final VoidCallback onBackspace;
   final bool typingMode;
   final bool showPinnedVerifyBar;
 
@@ -119,6 +123,8 @@ class _GameLayout extends StatelessWidget {
                     onSkipPuzzle: onSkipPuzzle,
                     onUseHint: onUseHint,
                     onShareHelp: onShareHelp,
+                    onTapLetter: onTapLetter,
+                    onBackspace: onBackspace,
                     layoutProfile: layoutProfile,
                     typingMode: typingMode,
                     showPinnedVerifyBar: showPinnedVerifyBar,
