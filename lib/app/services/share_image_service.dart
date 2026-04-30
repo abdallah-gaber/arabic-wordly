@@ -527,6 +527,10 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
     bool anchorCenter = false,
     bool anchorRight = false,
   }) {
+    final resolvedMaxWidth = math.max(
+      0.0,
+      maxWidth ?? (_width - (offset.dx * 2)),
+    );
     final painter = TextPainter(
       text: TextSpan(
         text: text,
@@ -541,7 +545,7 @@ class FlutterShareImageRenderer implements ShareImageRenderer {
       textAlign: textAlign,
       maxLines: 3,
       ellipsis: '…',
-    )..layout(maxWidth: maxWidth ?? (_width - (offset.dx * 2)));
+    )..layout(maxWidth: resolvedMaxWidth);
 
     final paintOffset = anchorCenter
         ? Offset(offset.dx - (painter.width / 2), offset.dy)

@@ -1,6 +1,6 @@
 # Phase 0: Foundation (الأساس)
 
-**Status:** Current 🚧
+**Status:** Completed ✅
 **Description:** Stabilize solo play before any new features.
 
 ---

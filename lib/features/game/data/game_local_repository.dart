@@ -81,10 +81,16 @@ class GameLocalRepository {
   Future<GameSession> createNextSession({
     required GameMode mode,
     required int round,
-    String? excluding,
+    String? excludingWord,
+    String? excludingCategory,
   }) async {
     final createdAt = _now();
-    final puzzle = _puzzleBank.pickRandom(mode, _random, excluding: excluding);
+    final puzzle = _puzzleBank.pickRandom(
+      mode,
+      _random,
+      excludingWord: excludingWord,
+      excludingCategory: excludingCategory,
+    );
     final session = GameSession(
       mode: mode,
       round: round,

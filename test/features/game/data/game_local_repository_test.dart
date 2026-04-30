@@ -149,7 +149,7 @@ void main() {
         final session = await repository.createNextSession(
           mode: GameMode.fiveLetters,
           round: 2,
-          excluding: 'حديقة',
+          excludingWord: 'حديقة',
         );
 
         expect(session.round, 2);

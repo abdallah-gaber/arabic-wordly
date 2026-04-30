@@ -1,5 +1,7 @@
 # Phase 0: Foundation (SDD)
 
+> **Status:** Completed. The remaining foundation gap was closed by landing the Arabic keyboard flow, interaction polish, persistence coverage, and validation fixes that preserve distinct Arabic letter forms while keeping puzzle-bank validation consistent.
+
 ## Overview
 This document serves as the Software Design Document (SDD) and execution checklist for Phase 0 of the `5amenha` roadmap. Phase 0 exists to close the remaining solo-play quality gaps before any later roadmap work continues.
 
@@ -27,57 +29,57 @@ This document serves as the Software Design Document (SDD) and execution checkli
 
 #### C1: In-app Arabic keyboard
 **Goal:** Replace the system soft keyboard during gameplay with a game-owned Arabic keyboard that supports status coloring, disabled absent keys, and direct tap input.
-- [ ] **Domain/Application:** Define the keyboard-state mapping from submitted guesses to key status, with stable precedence so `correct` beats `present`, and `present` beats `absent`.
-- [ ] **Domain/Application:** Define the shipped Arabic key layout, plus rules for which keys become disabled after they are proven absent.
-- [ ] **Tests (Unit):** Cover repeated guesses, duplicate letters, status upgrades, and disabled-key edge cases so a key never regresses visually after better evidence.
-- [ ] **UI:** Replace the gameplay `TextField` input path with an in-app Arabic keyboard surface, letter insertion, backspace, and submit actions.
-- [ ] **UI:** Render key colors consistently across supported word lengths and game modes while keeping already-confirmed useful letters tappable.
-- [ ] **Tests (Widget):** Verify representative keys change color after submissions, preserve the highest-earned status, and absent-only keys become non-interactive.
+- [x] **Domain/Application:** Define the keyboard-state mapping from submitted guesses to key status, with stable precedence so `correct` beats `present`, and `present` beats `absent`.
+- [x] **Domain/Application:** Define the shipped Arabic key layout, plus rules for which keys become disabled after they are proven absent.
+- [x] **Tests (Unit):** Cover repeated guesses, duplicate letters, status upgrades, and disabled-key edge cases so a key never regresses visually after better evidence.
+- [x] **UI:** Replace the gameplay `TextField` input path with an in-app Arabic keyboard surface, letter insertion, backspace, and submit actions.
+- [x] **UI:** Render key colors consistently across supported word lengths and game modes while keeping already-confirmed useful letters tappable.
+- [x] **Tests (Widget):** Verify representative keys change color after submissions, preserve the highest-earned status, and absent-only keys become non-interactive.
 
 #### C2: Auto-submit on full word
 **Goal:** Reduce friction by automatically verifying a guess once the in-app keyboard fills the row to the required letter count.
-- [ ] **Application:** Add a debounced auto-submit path triggered only when the active guess reaches the exact target length from keyboard taps.
-- [ ] **Tests (Unit):** Verify auto-submit fires once per completed guess, cancels if the input changes before the delay completes, and does not fire for partial/overflow states.
-- [ ] **UI:** Keep a visible manual verification fallback on the keyboard surface when auto-submit is blocked by state guards or timing.
-- [ ] **Tests (Widget):** Simulate typing a full guess and confirm submission occurs after the intended delay without duplicate submits.
+- [x] **Application:** Add a debounced auto-submit path triggered only when the active guess reaches the exact target length from keyboard taps.
+- [x] **Tests (Unit):** Verify auto-submit fires once per completed guess, cancels if the input changes before the delay completes, and does not fire for partial/overflow states.
+- [x] **UI:** Keep a visible manual verification fallback on the keyboard surface when auto-submit is blocked by state guards or timing.
+- [x] **Tests (Widget):** Simulate typing a full guess and confirm submission occurs after the intended delay without duplicate submits.
 
 #### C3: Tile flip animation
 **Goal:** Add clear reveal feedback when a submitted row is evaluated.
-- [ ] **UI:** Introduce a staged tile reveal animation for the submitted row without changing the underlying scoring logic.
-- [ ] **Tests (Widget):** Verify the row enters the reveal state after submission and the tiles resolve in order rather than all at once.
-- [ ] **Integration:** Ensure animation timing does not block end-of-round dialogs, input reset, or screen-reader-safe semantics.
+- [x] **UI:** Introduce a staged tile reveal animation for the submitted row without changing the underlying scoring logic.
+- [x] **Tests (Widget):** Verify the row enters the reveal state after submission and the tiles resolve in order rather than all at once.
+- [x] **Integration:** Ensure animation timing does not block end-of-round dialogs, input reset, or screen-reader-safe semantics.
 
 #### C4: Shake animation on invalid word
 **Goal:** Give immediate feedback when the submitted word is rejected by validation.
-- [ ] **UI:** Add a row shake effect for invalid submissions only.
-- [ ] **Tests (Widget):** Verify valid submissions do not trigger the shake and invalid submissions do.
-- [ ] **Behavior:** Keep the current error messaging aligned with the shake so both signals describe the same failure case.
+- [x] **UI:** Add a row shake effect for invalid submissions only.
+- [x] **Tests (Widget):** Verify valid submissions do not trigger the shake and invalid submissions do.
+- [x] **Behavior:** Keep the current error messaging aligned with the shake so both signals describe the same failure case.
 
 #### C5: Letter count progress dots
 **Goal:** Show lightweight progress toward a complete guess while using the in-app keyboard.
-- [ ] **UI:** Add a small progress indicator near the active input surface that reflects entered-letter count against target length.
-- [ ] **Tests (Widget):** Verify the indicator updates while typing, resets after submission, and adapts to different word lengths.
+- [x] **UI:** Add a small progress indicator near the active input surface that reflects entered-letter count against target length.
+- [x] **Tests (Widget):** Verify the indicator updates while typing, resets after submission, and adapts to different word lengths.
 
 ### 2. Stability & Bug Fixes
 
 #### B1: Word validation edge cases
 **Goal:** Normalize Arabic input and validation behavior across dictionary lookups, submitted guesses, and puzzle data.
-- [ ] **Domain/Data:** Audit the current normalization path for hamza variants, ta marbuta, alef forms, and any existing diacritic handling.
-- [ ] **Tests (Unit):** Add focused cases covering accepted equivalent forms, rejected malformed entries, and duplicate-letter edge cases.
-- [ ] **Implementation:** Centralize normalization rules where practical so validation, puzzle sourcing, and comparison logic cannot silently diverge.
+- [x] **Domain/Data:** Audit the current normalization path for hamza variants, ta marbuta, alef forms, and any existing diacritic handling.
+- [x] **Tests (Unit):** Add focused cases covering accepted equivalent forms, rejected malformed entries, and duplicate-letter edge cases.
+- [x] **Implementation:** Centralize normalization rules where practical so validation, puzzle sourcing, and comparison logic cannot silently diverge.
 
 #### B2: State persistence on app kill
 **Goal:** Ensure an in-progress round survives backgrounding, termination, and relaunch.
-- [ ] **Application/Data:** Trace the current save points for game state and identify whether persistence is delayed, partial, or mode-specific.
-- [ ] **Tests (Unit):** Verify state snapshots are written after meaningful progress transitions such as typing completion, submit resolution, skip, and round end.
-- [ ] **Tests (Widget/Integration):** Recreate a partially played round, rebuild the screen/controller, and confirm the board/input/session restore cleanly.
-- [ ] **Implementation:** Tighten persistence timing without adding redundant writes that would hurt responsiveness.
+- [x] **Application/Data:** Trace the current save points for game state and identify whether persistence is delayed, partial, or mode-specific.
+- [x] **Tests (Unit):** Verify state snapshots are written after meaningful progress transitions such as typing completion, submit resolution, skip, and round end.
+- [x] **Tests (Widget/Integration):** Recreate a partially played round, rebuild the screen/controller, and confirm the board/input/session restore cleanly.
+- [x] **Implementation:** Tighten persistence timing without adding redundant writes that would hurt responsiveness.
 
 #### B3: Keyboard layout stability
 **Goal:** Keep the active row and primary input flow visible while the in-app keyboard is displayed.
-- [ ] **UI/Layout:** Rework the current keyboard-aware layout so the game-owned keyboard occupies stable space without obscuring the active row or composer.
-- [ ] **Tests (Widget):** Cover common small-height mobile layouts and verify the active play area remains visible with the in-app keyboard mounted.
-- [ ] **Behavior:** Preserve the compact play layout and primary verification affordance while removing overlap regressions.
+- [x] **UI/Layout:** Rework the current keyboard-aware layout so the game-owned keyboard occupies stable space without obscuring the active row or composer.
+- [x] **Tests (Widget):** Cover common small-height mobile layouts and verify the active play area remains visible with the in-app keyboard mounted.
+- [x] **Behavior:** Preserve the compact play layout and primary verification affordance while removing overlap regressions.
 
 ---
 

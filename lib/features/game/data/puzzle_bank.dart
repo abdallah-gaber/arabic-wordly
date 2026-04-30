@@ -56,15 +56,22 @@ class ArabicPuzzleBank {
     return puzzleForAnswer(mode, answer)?.definition;
   }
 
-  ArabicPuzzle pickRandom(GameMode mode, Random random, {String? excluding}) {
-    final normalizedExcluding = excluding == null
+  ArabicPuzzle pickRandom(GameMode mode, Random random, {String? excludingWord, String? excludingCategory}) {
+    final normalizedExcluding = excludingWord == null
         ? null
-        : ArabicWordRules.normalize(excluding);
+        : ArabicWordRules.normalize(excludingWord);
     final puzzles = puzzlesForMode(mode);
 
-    final candidates = puzzles.length > 1 && normalizedExcluding != null
-        ? puzzles.where((puzzle) => puzzle.word != normalizedExcluding).toList()
-        : puzzles;
+    List<ArabicPuzzle> candidates = puzzles;
+    if (candidates.length > 1 && normalizedExcluding != null) {
+      candidates = candidates.where((puzzle) => puzzle.word != normalizedExcluding).toList();
+    }
+    if (candidates.length > 1 && excludingCategory != null) {
+      final filtered = candidates.where((puzzle) => puzzle.category != excludingCategory).toList();
+      if (filtered.isNotEmpty) {
+        candidates = filtered;
+      }
+    }
 
     return candidates[random.nextInt(candidates.length)];
   }

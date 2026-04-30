@@ -30,17 +30,17 @@ void main() {
       final keys = GameKeyboard.buildKeys(
         guesses: const ['نور'],
         answer: 'باب',
-      ).expand((row) => row);
+      );
 
       final noon = keys.firstWhere((key) => key.letter == 'ن');
       final waw = GameKeyboard.buildKeys(
         guesses: const ['نور'],
         answer: 'باب',
-      ).expand((row) => row).firstWhere((key) => key.letter == 'و');
+      ).firstWhere((key) => key.letter == 'و');
       final baa = GameKeyboard.buildKeys(
         guesses: const ['نور'],
         answer: 'باب',
-      ).expand((row) => row).firstWhere((key) => key.letter == 'ب');
+      ).firstWhere((key) => key.letter == 'ب');
 
       expect(noon.state, GameKeyboardKeyState.absent);
       expect(noon.isEnabled, isFalse);

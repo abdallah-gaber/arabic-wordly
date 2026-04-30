@@ -15,7 +15,7 @@
 - Mobile typing-mode UX with inline verify, pinned verify above keyboard, and compact focused layout
 - Riverpod architecture with automated coverage across domain, data, and UI
 
-Phase 1 growth work has already landed on `main`, but the original Phase 0 foundation polish pass was skipped in execution order and still needs to be completed. The current milestone is to close that foundation gap before moving deeper into later roadmap work.
+Phase 1 growth work had landed on `main` before the original Phase 0 foundation polish pass. That foundation gap is now closed on the Phase 0 branch, and the next milestone is to proceed into the next roadmap slice from a clean, verified baseline.
 
 ## Locked product decisions
 
@@ -113,19 +113,19 @@ Do not let Firebase types leak into domain, controller, or presentation layers.
 
 ### Next slice
 
-**Phase 0 foundation polish**
+**Daily flow fixes and content quality pass**
 
-- Add the missing solo-play quality-of-life behaviors from Phase 0
-- Tighten validation, persistence, and keyboard/layout stability
-- Restore the intended roadmap order before taking on deeper feature work
+- Confirm the completed daily challenge flow stays coherent as later work lands
+- Revisit the bundled words, categories, and meanings for content quality, category fit, and definition accuracy
+- Replace placeholder or misleading meaning strings with curated explanations that match the actual word and category
 
 ### Slice after that
 
-**Daily flow fixes and content quality pass**
+**Settings and local profile layer**
 
-- Fix the daily challenge end-of-round flow so solved/lost daily runs do not offer an illogical "next puzzle" action and always provide a clear way back out
-- Revisit the bundled words, categories, and meanings for content quality, category fit, and definition accuracy
-- Replace placeholder or misleading meaning strings with curated explanations that match the actual word and category
+- Add local settings for haptics and sound
+- Add lightweight local profile scaffolding that fits the current offline-first architecture
+- Keep the surface modest so it does not distract from the core solo loop
 
 ### Later
 

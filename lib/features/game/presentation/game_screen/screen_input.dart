@@ -132,7 +132,7 @@ class _InputSectionState extends State<_InputSection> {
         );
       }),
     );
-    final keyboardRows = GameKeyboard.buildKeys(
+    final keyboardKeys = GameKeyboard.buildKeys(
       guesses: widget.session.guesses,
       answer: widget.session.answer,
     );
@@ -281,7 +281,7 @@ class _InputSectionState extends State<_InputSection> {
                 ),
               SizedBox(height: widget.dense ? 12 : 14),
               _GameKeyboardPanel(
-                rows: keyboardRows,
+                keys: keyboardKeys,
                 canSubmit: widget.isGuessReady,
                 canBackspace: widget.currentLetterCount > 0,
                 onTapLetter: widget.onTapLetter,
@@ -408,7 +408,7 @@ class _InputSectionState extends State<_InputSection> {
 
 class _GameKeyboardPanel extends StatelessWidget {
   const _GameKeyboardPanel({
-    required this.rows,
+    required this.keys,
     required this.canSubmit,
     required this.canBackspace,
     required this.onTapLetter,
@@ -416,7 +416,7 @@ class _GameKeyboardPanel extends StatelessWidget {
     required this.onSubmit,
   });
 
-  final List<List<GameKeyboardKey>> rows;
+  final List<GameKeyboardKey> keys;
   final bool canSubmit;
   final bool canBackspace;
   final ValueChanged<String> onTapLetter;
@@ -427,37 +427,28 @@ class _GameKeyboardPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final maxRowLength = rows.fold<int>(
-          0,
-          (current, row) => row.length > current ? row.length : current,
-        );
+        // Adjust these to control how many keys per line
         final availableWidth = constraints.maxWidth;
-        final keyWidth = ((availableWidth - (maxRowLength * 8)) / maxRowLength)
-            .clamp(20.0, 28.0);
+        final keyWidth = ((availableWidth - (10 * 8)) / 10).clamp(24.0, 36.0);
 
         return Column(
           key: const ValueKey('game-arabic-keyboard'),
           children: [
-            for (final row in rows)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  for (final key in row)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 2,
-                        vertical: 3,
-                      ),
-                      child: _KeyboardLetterKey(
-                        width: keyWidth,
-                        keyModel: key,
-                        onPressed: key.isEnabled
-                            ? () => onTapLetter(key.letter)
-                            : null,
-                      ),
-                    ),
-                ],
-              ),
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 8,
+              children: [
+                for (final key in keys)
+                  _KeyboardLetterKey(
+                    width: keyWidth,
+                    keyModel: key,
+                    onPressed: key.isEnabled
+                        ? () => onTapLetter(key.letter)
+                        : null,
+                  ),
+              ],
+            ),
             const SizedBox(height: 8),
             Row(
               children: [

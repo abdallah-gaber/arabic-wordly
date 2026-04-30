@@ -330,7 +330,8 @@ class GameController extends AsyncNotifier<GameViewState> {
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
-        excluding: current.session.answer,
+        excludingWord: current.session.answer,
+        excludingCategory: current.session.category,
       );
       await _saveSession(nextSession);
       state = AsyncData(
@@ -375,7 +376,8 @@ class GameController extends AsyncNotifier<GameViewState> {
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
-        excluding: current.session.answer,
+        excludingWord: current.session.answer,
+        excludingCategory: current.session.category,
       );
       await _saveSession(nextSession);
       state = AsyncData(

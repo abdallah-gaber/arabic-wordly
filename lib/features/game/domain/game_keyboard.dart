@@ -18,30 +18,26 @@ class GameKeyboardKey {
 class GameKeyboard {
   const GameKeyboard._();
 
-  static const List<List<String>> letterRows = [
-    ['ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج', 'د'],
-    ['ش', 'س', 'ي', 'ب', 'ل', 'ا', 'ت', 'ن', 'م', 'ك', 'ط'],
-    ['ئ', 'ء', 'ؤ', 'ر', 'ى', 'ة', 'و', 'ز', 'ظ'],
+  static const List<String> allLetters = [
+    'ض', 'ص', 'ث', 'ق', 'ف', 'غ', 'ع', 'ه', 'خ', 'ح', 'ج', 'د', 'ذ',
+    'ش', 'س', 'ي', 'ب', 'ل', 'ا', 'أ', 'إ', 'آ', 'ت', 'ن', 'م', 'ك', 'ط',
+    'ئ', 'ء', 'ؤ', 'ر', 'ى', 'ة', 'و', 'ز', 'ظ'
   ];
 
-  static List<List<GameKeyboardKey>> buildKeys({
+  static List<GameKeyboardKey> buildKeys({
     required List<String> guesses,
     required String answer,
   }) {
     final states = keyStatesForGuesses(guesses: guesses, answer: answer);
-    return letterRows
-        .map(
-          (row) => row
-              .map((letter) {
-                final state = states[letter] ?? GameKeyboardKeyState.unused;
-                return GameKeyboardKey(
-                  letter: letter,
-                  state: state,
-                  isEnabled: state != GameKeyboardKeyState.absent,
-                );
-              })
-              .toList(growable: false),
-        )
+    return allLetters
+        .map((letter) {
+          final state = states[letter] ?? GameKeyboardKeyState.unused;
+          return GameKeyboardKey(
+            letter: letter,
+            state: state,
+            isEnabled: state != GameKeyboardKeyState.absent,
+          );
+        })
         .toList(growable: false);
   }
 
