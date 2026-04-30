@@ -29,6 +29,12 @@ final ArabicPuzzleBank widgetTestPuzzleBank = ArabicPuzzleBank({
       category: 'القراءة',
       definition: 'مكان تُجمع فيه الكتب والمراجع للقراءة أو الاستعارة.',
     ),
+    const ArabicPuzzle(word: 'دحيقة', category: 'اختبار'),
+    const ArabicPuzzle(word: 'قحيدة', category: 'اختبار'),
+    const ArabicPuzzle(word: 'حقدية', category: 'اختبار'),
+    const ArabicPuzzle(word: 'ديحقة', category: 'اختبار'),
+    const ArabicPuzzle(word: 'يقةحد', category: 'اختبار'),
+    const ArabicPuzzle(word: 'قديحة', category: 'اختبار'),
   ],
   GameMode.sixLetters: [
     const ArabicPuzzle(word: 'برنامج', category: 'التعليم'),

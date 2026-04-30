@@ -29,11 +29,13 @@ class ArabicPuzzleBank {
     ).map((puzzle) => puzzle.word).toList(growable: false);
   }
 
+  bool containsWord(GameMode mode, String word) {
+    final normalizedWord = ArabicWordRules.normalize(word);
+    return puzzlesForMode(mode).any((puzzle) => puzzle.word == normalizedWord);
+  }
+
   bool containsAnswer(GameMode mode, String answer) {
-    final normalizedAnswer = ArabicWordRules.normalize(answer);
-    return puzzlesForMode(
-      mode,
-    ).any((puzzle) => puzzle.word == normalizedAnswer);
+    return containsWord(mode, answer);
   }
 
   ArabicPuzzle? puzzleForAnswer(GameMode mode, String answer) {
@@ -54,15 +56,22 @@ class ArabicPuzzleBank {
     return puzzleForAnswer(mode, answer)?.definition;
   }
 
-  ArabicPuzzle pickRandom(GameMode mode, Random random, {String? excluding}) {
-    final normalizedExcluding = excluding == null
+  ArabicPuzzle pickRandom(GameMode mode, Random random, {String? excludingWord, String? excludingCategory}) {
+    final normalizedExcluding = excludingWord == null
         ? null
-        : ArabicWordRules.normalize(excluding);
+        : ArabicWordRules.normalize(excludingWord);
     final puzzles = puzzlesForMode(mode);
 
-    final candidates = puzzles.length > 1 && normalizedExcluding != null
-        ? puzzles.where((puzzle) => puzzle.word != normalizedExcluding).toList()
-        : puzzles;
+    List<ArabicPuzzle> candidates = puzzles;
+    if (candidates.length > 1 && normalizedExcluding != null) {
+      candidates = candidates.where((puzzle) => puzzle.word != normalizedExcluding).toList();
+    }
+    if (candidates.length > 1 && excludingCategory != null) {
+      final filtered = candidates.where((puzzle) => puzzle.category != excludingCategory).toList();
+      if (filtered.isNotEmpty) {
+        candidates = filtered;
+      }
+    }
 
     return candidates[random.nextInt(candidates.length)];
   }

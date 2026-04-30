@@ -7,14 +7,13 @@ import 'package:arabic_wordly/app/services/share_image_service.dart';
 import 'package:arabic_wordly/app/services/share_sheet_service.dart';
 import 'package:arabic_wordly/features/game/application/game_controller.dart';
 import 'package:arabic_wordly/features/game/domain/arabic_word_rules.dart';
+import 'package:arabic_wordly/features/game/domain/game_keyboard.dart';
 import 'package:arabic_wordly/features/game/domain/game_models.dart';
 import 'package:arabic_wordly/features/game/domain/guess_evaluator.dart';
 import 'package:arabic_wordly/features/game/domain/hint_selector.dart';
 import 'package:arabic_wordly/features/game/domain/player_stats.dart';
 import 'package:arabic_wordly/features/game/domain/share_result_formatter.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 part 'game_screen/screen_layout.dart';
@@ -53,9 +52,11 @@ class _GameScreenView extends ConsumerStatefulWidget {
 
 class _GameScreenState extends ConsumerState<_GameScreenView> {
   GameConfig get _config => GameConfig(mode: widget.mode, track: widget.track);
+  static const Duration _autoSubmitDelay = Duration(milliseconds: 300);
   late final TextEditingController _guessController;
   late final FocusNode _guessFocusNode;
   late final Timer _hintTimer;
+  Timer? _autoSubmitTimer;
   bool _isResultDialogOpen = false;
   bool _wasGuessReady = false;
   int _invalidGuessFeedbackTick = 0;
@@ -83,18 +84,24 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
         _wasGuessReady = isReady;
       });
     }
+
+    final current = ref.read(gameControllerProvider(_config)).asData?.value;
+    if (current?.session.draftGuess != sanitized) {
+      unawaited(
+        ref.read(gameControllerProvider(_config).notifier).updateDraftGuess(
+          sanitized,
+        ),
+      );
+    }
+
+    _syncAutoSubmit();
   }
 
   @override
   void initState() {
     super.initState();
     _guessController = TextEditingController();
-    _guessFocusNode = FocusNode()
-      ..addListener(() {
-        if (mounted) {
-          setState(() {});
-        }
-      });
+    _guessFocusNode = FocusNode();
     _guessController.addListener(_handleGuessChanged);
     _hintTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted) {
@@ -106,6 +113,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   @override
   void dispose() {
     _guessController.removeListener(_handleGuessChanged);
+    _autoSubmitTimer?.cancel();
     _guessController.dispose();
     _guessFocusNode.dispose();
     _hintTimer.cancel();
@@ -113,6 +121,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   }
 
   Future<void> _submitGuess() async {
+    _autoSubmitTimer?.cancel();
     if (!_isGuessReady) {
       _triggerInvalidGuessFeedback();
       unawaited(AppHaptics.warning());
@@ -127,7 +136,6 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       return;
     }
 
-    FocusScope.of(context).unfocus();
     if (accepted) {
       final nextState = ref.read(gameControllerProvider(_config)).asData?.value;
       if (nextState?.pendingResult == null) {
@@ -151,14 +159,12 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
   }
 
   Future<void> _skipPuzzle() async {
-    FocusScope.of(context).unfocus();
     _guessController.clear();
     await ref.read(gameControllerProvider(_config).notifier).skipPuzzle();
     unawaited(AppHaptics.mediumImpact());
   }
 
   Future<void> _useHint() async {
-    FocusScope.of(context).unfocus();
     final currentState = ref
         .read(gameControllerProvider(_config))
         .asData
@@ -236,7 +242,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
 
     _isResultDialogOpen = true;
 
-    final shouldAdvance = await showGeneralDialog<bool>(
+    final dialogAction = await showGeneralDialog<bool>(
       context: context,
       barrierDismissible: false,
       barrierLabel: 'round-result',
@@ -270,7 +276,16 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       await _maybePromptForNotifications();
     }
 
-    if (!mounted || shouldAdvance != true) {
+    if (!mounted) {
+      return;
+    }
+
+    if (widget.track == GameTrack.daily && dialogAction == false) {
+      Navigator.of(context).pop();
+      return;
+    }
+
+    if (dialogAction != true) {
       return;
     }
 
@@ -333,12 +348,54 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     wordLength: widget.mode.wordLength,
   );
 
-  bool _typingModeFor(BuildContext context) {
-    return _guessFocusNode.hasFocus;
+  bool _typingModeFor(BuildContext context) => false;
+
+  bool _shouldShowPinnedVerifyBar({required bool typingMode}) => false;
+
+  void _syncAutoSubmit() {
+    _autoSubmitTimer?.cancel();
+    if (!_isGuessReady) {
+      return;
+    }
+
+    final scheduledGuess = _guessController.text;
+    _autoSubmitTimer = Timer(_autoSubmitDelay, () {
+      if (!mounted) {
+        return;
+      }
+      if (_guessController.text != scheduledGuess || !_isGuessReady) {
+        return;
+      }
+      unawaited(_submitGuess());
+    });
   }
 
-  bool _shouldShowPinnedVerifyBar({required bool typingMode}) {
-    return typingMode && !kIsWeb;
+  void _appendLetter(String letter) {
+    if (_currentLetterCount >= widget.mode.wordLength) {
+      return;
+    }
+
+    final nextValue = ArabicWordRules.sanitizeGuessInput(
+      '${_guessController.text}$letter',
+      maxLength: widget.mode.wordLength,
+    );
+    _guessController.value = TextEditingValue(
+      text: nextValue,
+      selection: TextSelection.collapsed(offset: nextValue.length),
+    );
+  }
+
+  void _removeLastLetter() {
+    final letters = ArabicWordRules.split(_guessController.text);
+    if (letters.isEmpty) {
+      return;
+    }
+
+    final nextValue = letters.take(letters.length - 1).join();
+    _guessController.value = TextEditingValue(
+      text: nextValue,
+      selection: TextSelection.collapsed(offset: nextValue.length),
+    );
   }
 
   @override
@@ -355,6 +412,17 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
     ref.listen(gameControllerProvider(_config), (previous, next) {
       final previousResult = previous?.asData?.value.pendingResult;
       final nextResult = next.asData?.value.pendingResult;
+      final nextSession = next.asData?.value.session;
+      if (nextSession != null &&
+          nextSession.draftGuess != _guessController.text &&
+          !_isResultDialogOpen) {
+        _guessController.value = TextEditingValue(
+          text: nextSession.draftGuess,
+          selection: TextSelection.collapsed(
+            offset: nextSession.draftGuess.length,
+          ),
+        );
+      }
       if (nextResult != null && !identical(previousResult, nextResult)) {
         unawaited(
           nextResult.type == RoundResultType.won
@@ -362,9 +430,9 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
               : AppHaptics.failure(),
         );
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          final nextSession = next.asData?.value.session;
-          if (nextSession != null) {
-            _showRoundResultDialog(nextResult, nextSession);
+          final resultSession = next.asData?.value.session;
+          if (resultSession != null) {
+            _showRoundResultDialog(nextResult, resultSession);
           }
         });
       }
@@ -374,10 +442,7 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
       body: Stack(
         children: [
           Positioned.fill(child: _GameBackground(track: widget.track)),
-          GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: () => FocusScope.of(context).unfocus(),
-            child: SafeArea(
+          SafeArea(
               child: gameState.when(
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (error, stackTrace) => Center(
@@ -427,6 +492,8 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                                 onSkipPuzzle: _skipPuzzle,
                                 onUseHint: _useHint,
                                 onShareHelp: _shareCurrentProgressForHelp,
+                                onTapLetter: _appendLetter,
+                                onBackspace: _removeLastLetter,
                                 typingMode: typingMode,
                                 showPinnedVerifyBar: showPinnedVerifyBar,
                               ),
@@ -439,7 +506,6 @@ class _GameScreenState extends ConsumerState<_GameScreenView> {
                 ),
               ),
             ),
-          ),
           if (showPinnedVerifyBar)
             Positioned(
               left: 16,

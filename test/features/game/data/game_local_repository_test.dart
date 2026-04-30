@@ -66,6 +66,36 @@ void main() {
       expect(session.guesses, ['حديقة']);
     });
 
+    test('restores a cached draft guess for an in-progress session', () async {
+      final store = InMemoryKeyValueStore();
+      final repository = GameLocalRepository(
+        store: store,
+        puzzleBank: ArabicPuzzleBank({
+          GameMode.fiveLetters: [
+            const ArabicPuzzle(word: 'حديقة', category: 'الطبيعة'),
+            const ArabicPuzzle(word: 'مدرسة', category: 'التعليم'),
+          ],
+        }),
+        random: FixedRandom(1),
+        now: () => fixedNow,
+      );
+
+      await repository.saveSession(
+        const GameSession(
+          round: 3,
+          answer: 'مدرسة',
+          guesses: ['حديقة'],
+          draftGuess: 'مكت',
+        ),
+      );
+
+      final session = await repository.restoreOrCreateSession(
+        GameMode.fiveLetters,
+      );
+
+      expect(session.draftGuess, 'مكت');
+    });
+
     test(
       'restores a completed cached session until the user advances',
       () async {
@@ -119,7 +149,7 @@ void main() {
         final session = await repository.createNextSession(
           mode: GameMode.fiveLetters,
           round: 2,
-          excluding: 'حديقة',
+          excludingWord: 'حديقة',
         );
 
         expect(session.round, 2);

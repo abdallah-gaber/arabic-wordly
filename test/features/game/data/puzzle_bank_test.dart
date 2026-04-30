@@ -28,7 +28,11 @@ void main() {
         );
 
         expect(
-          puzzles.every((puzzle) => !_hasAttachedPronoun(puzzle.word)),
+          puzzles.every(
+            (puzzle) =>
+                !_looksLikeAttachedPronoun(puzzle.word) ||
+                _validPronounLikeWords.contains(puzzle.word),
+          ),
           isTrue,
           reason: 'Mode ${mode.name} has words with attached pronouns.',
         );
@@ -71,10 +75,33 @@ void main() {
       expect(definition, isNotEmpty);
       expect(definition, contains('مساحة'));
     });
+
+    test('does not ship boilerplate meanings for uncatalogued words', () {
+      final bank = ArabicPuzzleBank.defaults();
+
+      final definition = bank.definitionForAnswer(GameMode.fourLetters, 'هوكي');
+
+      expect(definition, isNull);
+    });
+
+    test('keeps curated technology content aligned', () {
+      final bank = ArabicPuzzleBank.defaults();
+
+      expect(bank.containsAnswer(GameMode.fiveLetters, 'فرامة'), isFalse);
+
+      final puzzle = bank.puzzleForAnswer(GameMode.fiveLetters, 'مسبار');
+
+      expect(puzzle, isNotNull);
+      expect(puzzle!.category, 'التقنية');
+      expect(
+        puzzle.definition,
+        'أداة أو مركبة مزودة بأجهزة قياس لاستكشاف بيئة بعيدة.',
+      );
+    });
   });
 }
 
-bool _hasAttachedPronoun(String word) {
+bool _looksLikeAttachedPronoun(String word) {
   const suffixes = <String>[
     'كما',
     'كم',
@@ -90,3 +117,13 @@ bool _hasAttachedPronoun(String word) {
     (suffix) => word.length > suffix.length + 1 && word.endsWith(suffix),
   );
 }
+
+const _validPronounLikeWords = <String>{
+  'اتجاه',
+  'حنك',
+  'ضحك',
+  'كركديه',
+  'كعك',
+  'وجه',
+  'ورك',
+};

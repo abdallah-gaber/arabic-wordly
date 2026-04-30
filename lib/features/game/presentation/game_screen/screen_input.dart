@@ -14,6 +14,8 @@ class _InputSection extends StatefulWidget {
     required this.onSkipPuzzle,
     required this.onUseHint,
     required this.onShareHelp,
+    required this.onTapLetter,
+    required this.onBackspace,
     required this.layoutProfile,
     required this.typingMode,
     required this.showPinnedVerifyBar,
@@ -31,6 +33,8 @@ class _InputSection extends StatefulWidget {
   final Future<void> Function() onSkipPuzzle;
   final Future<void> Function() onUseHint;
   final Future<void> Function() onShareHelp;
+  final ValueChanged<String> onTapLetter;
+  final VoidCallback onBackspace;
   final _ModeLayoutProfile layoutProfile;
   final bool typingMode;
   final bool showPinnedVerifyBar;
@@ -93,6 +97,7 @@ class _InputSectionState extends State<_InputSection> {
         ? const Color(0xFFF2FBF7)
         : const Color(0xFFFFFCF6);
     final countChip = Container(
+      key: const ValueKey('letter-count-chip'),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: progressBackground,
@@ -109,6 +114,27 @@ class _InputSectionState extends State<_InputSection> {
           ),
         ),
       ),
+    );
+    final progressDots = Row(
+      key: const ValueKey('guess-progress-dots'),
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List<Widget>.generate(widget.mode.wordLength, (index) {
+        final isFilled = index < widget.currentLetterCount;
+        return Container(
+          key: ValueKey('guess-progress-dot-$index'),
+          width: 10,
+          height: 10,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isFilled ? progressColor : const Color(0xFFD8D1C5),
+          ),
+        );
+      }),
+    );
+    final keyboardKeys = GameKeyboard.buildKeys(
+      guesses: widget.session.guesses,
+      answer: widget.session.answer,
     );
 
     return Column(
@@ -161,34 +187,43 @@ class _InputSectionState extends State<_InputSection> {
                 ],
               ),
               SizedBox(height: widget.dense ? 10 : 12),
-              TextField(
-                controller: widget.guessController,
-                focusNode: widget.guessFocusNode,
-                autofocus: kIsWeb,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.text,
-                textInputAction: TextInputAction.done,
-                maxLength: widget.mode.wordLength,
-                maxLengthEnforcement: MaxLengthEnforcement.enforced,
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(
-                    RegExp(r'[\u0600-\u06FF]+'),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: widget.isGuessReady
+                        ? const Color(0xFF90CBBB)
+                        : const Color(0xFFD9D2C6),
                   ),
-                ],
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800),
-                decoration: InputDecoration(
-                  labelText: 'التخمين الحالي',
-                  hintText: 'اكتب كلمة من ${widget.mode.wordLength} أحرف',
-                  counterText: '',
-                  filled: false,
-                  border: InputBorder.none,
-                  enabledBorder: InputBorder.none,
-                  focusedBorder: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
                 ),
-                onSubmitted: (_) => widget.onSubmitGuess(),
+                child: Column(
+                  children: [
+                    Text(
+                      'التخمين الحالي',
+                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                        color: const Color(0xFF5D635F),
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      widget.guessController.text.isEmpty
+                          ? 'ابدأ من لوحة الحروف العربية'
+                          : widget.guessController.text,
+                      key: const ValueKey('active-guess-display'),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        color: widget.guessController.text.isEmpty
+                            ? const Color(0xFF8C877E)
+                            : const Color(0xFF1F2A2E),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               Divider(
                 height: widget.dense ? 16 : 18,
@@ -196,6 +231,8 @@ class _InputSectionState extends State<_InputSection> {
                     ? const Color(0xFFCAE0D7)
                     : const Color(0xFFE3DDD1),
               ),
+              progressDots,
+              SizedBox(height: widget.dense ? 8 : 10),
               if (compactLayout)
                 Column(
                   children: [
@@ -242,6 +279,15 @@ class _InputSectionState extends State<_InputSection> {
                     ),
                   ],
                 ),
+              SizedBox(height: widget.dense ? 12 : 14),
+              _GameKeyboardPanel(
+                keys: keyboardKeys,
+                canSubmit: widget.isGuessReady,
+                canBackspace: widget.currentLetterCount > 0,
+                onTapLetter: widget.onTapLetter,
+                onBackspace: widget.onBackspace,
+                onSubmit: widget.onSubmitGuess,
+              ),
               if (!widget.showPinnedVerifyBar) ...[
                 SizedBox(height: widget.dense ? 10 : 12),
                 SizedBox(
@@ -357,6 +403,145 @@ class _InputSectionState extends State<_InputSection> {
     final minutes = totalSeconds ~/ 60;
     final seconds = totalSeconds % 60;
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+  }
+}
+
+class _GameKeyboardPanel extends StatelessWidget {
+  const _GameKeyboardPanel({
+    required this.keys,
+    required this.canSubmit,
+    required this.canBackspace,
+    required this.onTapLetter,
+    required this.onBackspace,
+    required this.onSubmit,
+  });
+
+  final List<GameKeyboardKey> keys;
+  final bool canSubmit;
+  final bool canBackspace;
+  final ValueChanged<String> onTapLetter;
+  final VoidCallback onBackspace;
+  final Future<void> Function() onSubmit;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Adjust these to control how many keys per line
+        final availableWidth = constraints.maxWidth;
+        final keyWidth = ((availableWidth - (10 * 8)) / 10).clamp(24.0, 36.0);
+
+        return Column(
+          key: const ValueKey('game-arabic-keyboard'),
+          children: [
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 6,
+              runSpacing: 8,
+              children: [
+                for (final key in keys)
+                  _KeyboardLetterKey(
+                    width: keyWidth,
+                    keyModel: key,
+                    onPressed: key.isEnabled
+                        ? () => onTapLetter(key.letter)
+                        : null,
+                  ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    key: const ValueKey('game-keyboard-backspace'),
+                    onPressed: canBackspace ? onBackspace : null,
+                    icon: const Icon(Icons.backspace_outlined),
+                    label: const Text('حذف'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    key: const ValueKey('game-keyboard-submit'),
+                    onPressed: canSubmit ? onSubmit : null,
+                    icon: const Icon(Icons.check_circle_outline),
+                    label: const Text('تحقق'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _KeyboardLetterKey extends StatelessWidget {
+  const _KeyboardLetterKey({
+    required this.width,
+    required this.keyModel,
+    this.onPressed,
+  });
+
+  final double width;
+  final GameKeyboardKey keyModel;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = switch (keyModel.state) {
+      GameKeyboardKeyState.correct => (
+          background: const Color(0xFF157A6E),
+          foreground: Colors.white,
+          border: const Color(0xFF157A6E),
+        ),
+      GameKeyboardKeyState.present => (
+          background: const Color(0xFFF4E8C8),
+          foreground: const Color(0xFF805B16),
+          border: const Color(0xFFE1C477),
+        ),
+      GameKeyboardKeyState.absent => (
+          background: const Color(0xFFE5E1DA),
+          foreground: const Color(0xFF8B847B),
+          border: const Color(0xFFD5CEC4),
+        ),
+      GameKeyboardKeyState.unused => (
+          background: Colors.white,
+          foreground: const Color(0xFF1F2A2E),
+          border: const Color(0xFFD9D2C6),
+        ),
+    };
+
+    return SizedBox(
+      width: width,
+      height: 42,
+      child: Material(
+        color: scheme.background,
+        borderRadius: BorderRadius.circular(10),
+        child: InkWell(
+          key: ValueKey('game-key-${keyModel.letter}'),
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: Ink(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: scheme.border),
+            ),
+            child: Center(
+              child: Text(
+                keyModel.letter,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  color: scheme.foreground,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

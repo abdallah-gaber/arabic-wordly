@@ -182,6 +182,7 @@ class _GuessRowState extends State<_GuessRow>
             ),
             child: _GuessTile(
               key: ValueKey('guess-tile-${widget.rowIndex}-$index'),
+              faceKey: ValueKey('guess-tile-face-${widget.rowIndex}-$index'),
               size: widget.tileSize,
               tileIndex: index,
               isActive: widget.isActive,
@@ -205,6 +206,7 @@ class _GuessRowState extends State<_GuessRow>
 class _GuessTile extends StatefulWidget {
   const _GuessTile({
     super.key,
+    required this.faceKey,
     required this.size,
     required this.tileIndex,
     required this.isActive,
@@ -212,6 +214,7 @@ class _GuessTile extends StatefulWidget {
     required this.match,
   });
 
+  final Key faceKey;
   final double size;
   final int tileIndex;
   final bool isActive;
@@ -225,25 +228,22 @@ class _GuessTile extends StatefulWidget {
 class _GuessTileState extends State<_GuessTile>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _scale;
-  late final Animation<double> _offset;
+  late final Animation<double> _flipTurns;
   int _animationToken = 0;
+  LetterMatch? _displayedMatch;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 320),
+      duration: const Duration(milliseconds: 360),
     );
-    _scale = Tween<double>(
-      begin: 0.92,
+    _flipTurns = Tween<double>(
+      begin: 0,
       end: 1,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
-    _offset = Tween<double>(
-      begin: 10,
-      end: 0,
-    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic));
+    _displayedMatch = widget.match;
     if (widget.match != null) {
       _controller.value = 1;
     }
@@ -253,6 +253,7 @@ class _GuessTileState extends State<_GuessTile>
   void didUpdateWidget(covariant _GuessTile oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.match == null && widget.match != null) {
+      _displayedMatch = null;
       _playAnimation(delay: Duration(milliseconds: widget.tileIndex * 55));
     } else if (oldWidget.letter != widget.letter &&
         widget.match == null &&
@@ -262,7 +263,10 @@ class _GuessTileState extends State<_GuessTile>
         widget.letter.isEmpty &&
         widget.match == null) {
       _animationToken++;
+      _displayedMatch = null;
       _controller.reverse(from: _controller.value == 0 ? 1 : _controller.value);
+    } else if (oldWidget.match != widget.match && widget.match == null) {
+      _displayedMatch = null;
     }
   }
 
@@ -271,6 +275,9 @@ class _GuessTileState extends State<_GuessTile>
     final token = _animationToken;
     _controller.reset();
     if (delay == Duration.zero) {
+      setState(() {
+        _displayedMatch = widget.match;
+      });
       _controller.forward();
       return;
     }
@@ -279,6 +286,9 @@ class _GuessTileState extends State<_GuessTile>
       if (!mounted || token != _animationToken) {
         return;
       }
+      setState(() {
+        _displayedMatch = widget.match;
+      });
       _controller.forward();
     });
   }
@@ -291,7 +301,8 @@ class _GuessTileState extends State<_GuessTile>
 
   @override
   Widget build(BuildContext context) {
-    final (backgroundColor, borderColor, textColor) = switch (widget.match) {
+    final visibleMatch = _displayedMatch;
+    final (backgroundColor, borderColor, textColor) = switch (visibleMatch) {
       LetterMatch.correct => (
         const Color(0xFF157A6E),
         const Color(0xFF157A6E),
@@ -317,14 +328,20 @@ class _GuessTileState extends State<_GuessTile>
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return Transform.translate(
-          offset: Offset(0, _offset.value),
-          child: Transform.scale(scale: _scale.value, child: child),
+        final angle = _flipTurns.value * pi;
+        final effectiveAngle = angle > (pi / 2) ? angle - pi : angle;
+        return Transform(
+          alignment: Alignment.center,
+          transform: Matrix4.identity()
+            ..setEntry(3, 2, 0.0014)
+            ..rotateY(effectiveAngle),
+          child: child,
         );
       },
       child: SizedBox.square(
         dimension: widget.size,
         child: AnimatedContainer(
+          key: widget.faceKey,
           duration: const Duration(milliseconds: 260),
           curve: Curves.easeOutCubic,
           decoration: BoxDecoration(
@@ -333,13 +350,13 @@ class _GuessTileState extends State<_GuessTile>
             border: Border.all(color: borderColor),
             boxShadow: [
               BoxShadow(
-                color: widget.match != null
+                color: visibleMatch != null
                     ? backgroundColor.withValues(alpha: 0.22)
                     : widget.isActive
                         ? const Color(0x1F157A6E)
                         : Colors.black.withValues(alpha: 0.05),
-                blurRadius: widget.match != null ? 14 : (widget.isActive ? 12 : 6),
-                offset: Offset(0, widget.match != null ? 6 : (widget.isActive ? 6 : 2)),
+                blurRadius: visibleMatch != null ? 14 : (widget.isActive ? 12 : 6),
+                offset: Offset(0, visibleMatch != null ? 6 : (widget.isActive ? 6 : 2)),
               ),
             ],
           ),
@@ -351,7 +368,7 @@ class _GuessTileState extends State<_GuessTile>
               },
               child: Text(
                 widget.letter,
-                key: ValueKey('${widget.letter}-${widget.match}'),
+                key: ValueKey('${widget.letter}-$visibleMatch'),
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                   color: textColor,

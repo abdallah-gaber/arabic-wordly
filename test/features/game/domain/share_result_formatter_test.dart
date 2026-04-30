@@ -13,7 +13,7 @@ void main() {
       );
 
       expect(output, contains('خمنها | التحدي اليومي'));
-      expect(output, contains('5 أحرف 2/6'));
+      expect(output, contains('🧠 كلاسيكي 2/6'));
       expect(output, contains('🟩'));
       expect(output.split('\n').length, greaterThanOrEqualTo(3));
     });

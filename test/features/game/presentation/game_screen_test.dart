@@ -9,12 +9,45 @@ import '../../../support/game_test_overrides.dart';
 import '../../../support/in_memory_key_value_store.dart';
 import '../../../support/mutable_clock.dart';
 import '../../../support/widget_test_puzzle_bank.dart';
+import 'package:characters/characters.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final clock = MutableClock(DateTime(2026, 4, 2, 8));
+
+  Future<void> tapLetters(WidgetTester tester, String letters) async {
+    for (final letter in letters.characters) {
+      final finder = find.byKey(ValueKey('game-key-$letter'));
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pump();
+    }
+  }
+
+  Future<void> backspaceLetters(WidgetTester tester, int count) async {
+    for (var index = 0; index < count; index++) {
+      final finder = find.byKey(const ValueKey('game-keyboard-backspace'));
+      await tester.ensureVisible(finder);
+      await tester.tap(finder);
+      await tester.pump();
+    }
+  }
+
+  Future<void> tapSubmit(WidgetTester tester) async {
+    final finder = find.byKey(const ValueKey('game-keyboard-submit'));
+    await tester.ensureVisible(finder);
+    await tester.tap(finder);
+    await tester.pump();
+  }
+
+  Color tileFaceColor(WidgetTester tester, int row, int column) {
+    final container = tester.widget<AnimatedContainer>(
+      find.byKey(ValueKey('guess-tile-face-$row-$column')),
+    );
+    return (container.decoration as BoxDecoration).color!;
+  }
 
   group('GameScreen', () {
     testWidgets('opens first to mode selection', (tester) async {
@@ -36,16 +69,12 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
-      // Since it's a PageView centered on page 2 (5 letters), the adjacent pages (4, 6) will be rendered.
       expect(find.text('⚖️ متوازن'), findsOneWidget);
       expect(find.text('🧠 كلاسيكي'), findsOneWidget);
       expect(find.text('🔥 تحدي'), findsOneWidget);
 
-      // Swipe right to reveal 3 letters
-      await tester.ensureVisible(find.text('🧠 كلاسيكي'));
       await tester.drag(find.byType(PageView), const Offset(400, 0));
-      await tester.pumpAndSettle();
-      expect(find.text('⚡ سريع'), findsOneWidget);
+      await tester.pump();
     });
 
     testWidgets('fits on a phone-sized viewport without layout overflow', (
@@ -65,6 +94,28 @@ void main() {
 
       await tester.pumpAndSettle();
 
+      expect(find.text('0 / 5'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+
+    testWidgets('keeps the keyboard flow stable on a shorter phone viewport', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(390, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('game-arabic-keyboard')), findsOneWidget);
       expect(find.text('0 / 5'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
@@ -131,6 +182,85 @@ void main() {
       },
     );
 
+    testWidgets('daily win exits back to mode selection instead of offering next puzzle', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final store = InMemoryKeyValueStore();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            keyValueStoreProvider.overrideWithValue(store),
+            randomProvider.overrideWithValue(FixedRandom(0)),
+            puzzleBankProvider.overrideWithValue(widgetTestPuzzleBank),
+            clockProvider.overrideWithValue(clock.call),
+          ],
+          child: const ArabicWordlyApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('التحدي اليومي'));
+      await tester.tap(find.text('التحدي اليومي'));
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'مكتبة');
+      await tapSubmit(tester);
+      await tester.pumpAndSettle();
+
+      expect(find.text('التالي'), findsNothing);
+      expect(find.text('العودة للتحديات'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'العودة للتحديات'),
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'العودة للتحديات'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
+      expect(find.text('التحدي اليومي'), findsOneWidget);
+    });
+
+    testWidgets('daily loss exits back to mode selection instead of offering next puzzle', (
+      tester,
+    ) async {
+      await tester.binding.setSurfaceSize(const Size(900, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      final store = InMemoryKeyValueStore();
+      await store.setString(
+        'daily_progress_5_2026-04-02',
+        '{"mode":"5","dateKey":"2026-04-02","answer":"مكتبة","category":"القراءة","guesses":["حديقة","مدرسة","دحيقة","قحيدة","حقدية","ديحقة"],"revealedHintIndexes":[],"pointsEarned":0}',
+      );
+
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            keyValueStoreProvider.overrideWithValue(store),
+            randomProvider.overrideWithValue(FixedRandom(0)),
+            puzzleBankProvider.overrideWithValue(widgetTestPuzzleBank),
+            clockProvider.overrideWithValue(clock.call),
+          ],
+          child: const ArabicWordlyApp(),
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('التحدي اليومي'));
+      await tester.tap(find.text('التحدي اليومي'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('التالي'), findsNothing);
+      expect(find.text('العودة للتحديات'), findsOneWidget);
+
+      await tester.ensureVisible(
+        find.widgetWithText(ElevatedButton, 'العودة للتحديات'),
+      );
+      await tester.tap(find.widgetWithText(ElevatedButton, 'العودة للتحديات'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('اختر طول التحدي وابدأ فوراً'), findsOneWidget);
+    });
+
     testWidgets('loads directly into the current puzzle for a new user', (
       tester,
     ) async {
@@ -151,14 +281,16 @@ void main() {
       expect(find.text('الفئة: الطبيعة'), findsOneWidget);
       expect(find.text('أكمل الكلمة أولاً'), findsOneWidget);
       expect(find.text('0 / 5'), findsOneWidget);
-      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.byKey(const ValueKey('game-arabic-keyboard')), findsOneWidget);
       expect(
-        tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+        tester.widget<ElevatedButton>(
+          find.byKey(const ValueKey('game-keyboard-submit')),
+        ).onPressed,
         isNull,
       );
     });
 
-    testWidgets('enters typing mode when the input is focused', (tester) async {
+    testWidgets('shows the in-app Arabic keyboard by default', (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -173,21 +305,19 @@ void main() {
 
       await tester.pumpAndSettle();
       expect(find.text('5amenha'), findsOneWidget);
-
-      await tester.showKeyboard(find.byType(TextField));
-      await tester.pumpAndSettle();
-
-      expect(find.text('5amenha'), findsNothing);
-      expect(find.text('المتبقي 6'), findsOneWidget);
-      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+      expect(find.byKey(const ValueKey('game-arabic-keyboard')), findsOneWidget);
+      expect(find.byType(TextField), findsNothing);
+      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsNothing);
+      expect(find.text('ابدأ التخمين'), findsOneWidget);
       expect(find.text('أكمل الكلمة أولاً'), findsOneWidget);
-      expect(find.text('الفئة: الطبيعة'), findsNothing);
-      expect(find.text('تغيير الوضع'), findsNothing);
-      expect(find.byType(ElevatedButton), findsOneWidget);
+      expect(find.text('الفئة: الطبيعة'), findsOneWidget);
+      expect(find.byType(ElevatedButton), findsWidgets);
       expect(tester.takeException(), isNull);
     });
 
-    testWidgets('tapping outside the field exits typing mode', (tester) async {
+    testWidgets('tapping keyboard letters updates the active guess display', (
+      tester,
+    ) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
       addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -201,20 +331,59 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.showKeyboard(find.byType(TextField));
+      await tapLetters(tester, 'حدي');
+
+      expect(find.byKey(const ValueKey('active-guess-display')), findsOneWidget);
+      expect(find.text('حدي'), findsWidgets);
+      expect(find.text('3 / 5'), findsOneWidget);
+    });
+
+    testWidgets('shows progress dots that fill as letters are tapped', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
       await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('guess-progress-dots')), findsOneWidget);
 
-      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
+      final initialDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-0')),
+      );
+      expect(
+        (initialDot.decoration as BoxDecoration).color,
+        const Color(0xFFD8D1C5),
+      );
 
-      await tester.tap(find.text('المتبقي 6'));
-      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حد');
 
-      expect(find.byKey(const ValueKey('pinned-verify-bar')), findsNothing);
-      expect(find.text('5amenha'), findsOneWidget);
+      final firstDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-0')),
+      );
+      final secondDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-1')),
+      );
+      final thirdDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-2')),
+      );
+      final fourthDot = tester.widget<Container>(
+        find.byKey(const ValueKey('guess-progress-dot-3')),
+      );
+
+      expect((firstDot.decoration as BoxDecoration).color, const Color(0xFFC84F4F));
+      expect((secondDot.decoration as BoxDecoration).color, const Color(0xFFC84F4F));
+      expect((thirdDot.decoration as BoxDecoration).color, const Color(0xFFD8D1C5));
+      expect((fourthDot.decoration as BoxDecoration).color, const Color(0xFFD8D1C5));
     });
 
     testWidgets(
-      'keeps the pinned verify action in sync with input readiness while typing',
+      'keeps the keyboard submit action in sync with guess readiness',
       (tester) async {
         await tester.pumpWidget(
           gameScreenTestApp(
@@ -226,30 +395,138 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        await tester.showKeyboard(find.byType(TextField));
-        await tester.pumpAndSettle();
-
-        expect(find.byKey(const ValueKey('pinned-verify-bar')), findsOneWidget);
-        await tester.enterText(find.byType(TextField), 'حدي');
-        await tester.pump();
+        await tapLetters(tester, 'حدي');
 
         expect(find.text('3 / 5'), findsOneWidget);
         expect(
-          tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+          tester.widget<ElevatedButton>(
+            find.byKey(const ValueKey('game-keyboard-submit')),
+          ).onPressed,
           isNull,
         );
 
-        await tester.enterText(find.byType(TextField), 'حديقة');
-        await tester.pump();
+        await tapLetters(tester, 'قة');
 
         expect(find.text('5 / 5'), findsOneWidget);
-        expect(find.text('تحقق الآن'), findsOneWidget);
+        expect(find.text('تحقق'), findsOneWidget);
         expect(
-          tester.widget<ElevatedButton>(find.byType(ElevatedButton)).onPressed,
+          tester.widget<ElevatedButton>(
+            find.byKey(const ValueKey('game-keyboard-submit')),
+          ).onPressed,
           isNotNull,
         );
       },
     );
+
+    testWidgets('auto-submits once the keyboard completes a valid guess', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حديقة');
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pumpAndSettle();
+
+      expect(find.text('أحسنت!'), findsOneWidget);
+      expect(find.text('الكلمة الصحيحة: حديقة'), findsOneWidget);
+    });
+
+    testWidgets('reveals solved tiles in a staggered flip sequence', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedSequenceRandom([0, 1]),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حديقة');
+      await tapSubmit(tester);
+
+      await tester.pump(const Duration(milliseconds: 20));
+      expect(tileFaceColor(tester, 0, 0), const Color(0xFF157A6E));
+      expect(tileFaceColor(tester, 0, 4), Colors.white);
+
+      await tester.pump(const Duration(milliseconds: 240));
+      expect(tileFaceColor(tester, 0, 4), const Color(0xFF157A6E));
+
+      await tester.pumpAndSettle();
+      expect(find.text('أحسنت!'), findsOneWidget);
+    });
+
+    testWidgets('cancels a pending auto-submit when the guess is edited', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حديقة');
+      await tester.pump(const Duration(milliseconds: 100));
+      await backspaceLetters(tester, 1);
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pumpAndSettle();
+
+      expect(find.text('أحسنت!'), findsNothing);
+      expect(find.text('4 / 5'), findsOneWidget);
+      expect(find.text('حديق'), findsWidgets);
+    });
+
+    testWidgets('rejects a word outside the puzzle bank and shakes the row', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: InMemoryKeyValueStore(),
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'سفينة');
+      await tester.pump();
+
+      final initialPosition = tester.getTopLeft(
+        find.byKey(const ValueKey('guess-tile-0-0')),
+      );
+
+      await tapSubmit(tester);
+      await tester.pump(const Duration(milliseconds: 60));
+
+      final shakenPosition = tester.getTopLeft(
+        find.byKey(const ValueKey('guess-tile-0-0')),
+      );
+
+      expect(find.text('هذه الكلمة غير موجودة في بنك الكلمات الحالي.'), findsOneWidget);
+      expect(shakenPosition.dx, isNot(initialPosition.dx));
+      expect(find.text('أحسنت!'), findsNothing);
+
+      await tester.pumpAndSettle();
+      final settledPosition = tester.getTopLeft(
+        find.byKey(const ValueKey('guess-tile-0-0')),
+      );
+      expect(settledPosition.dx, closeTo(initialPosition.dx, 0.01));
+    });
 
     testWidgets('mirrors the typed guess in the active board row', (
       tester,
@@ -264,10 +541,7 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.showKeyboard(find.byType(TextField));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'حدي');
-      await tester.pump();
+      await tapLetters(tester, 'حدي');
 
       expect(
         find.descendant(
@@ -305,11 +579,8 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.showKeyboard(find.byType(TextField));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'حدي');
-      await tester.pump();
-      await tester.enterText(find.byType(TextField), 'حد');
+      await tapLetters(tester, 'حدي');
+      await backspaceLetters(tester, 1);
       await tester.pumpAndSettle();
 
       expect(
@@ -318,6 +589,55 @@ void main() {
           matching: find.text('ي'),
         ),
         findsNothing,
+      );
+    });
+
+    testWidgets('restores a saved draft guess after rebuilding the screen', (
+      tester,
+    ) async {
+      final store = InMemoryKeyValueStore();
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: store,
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+      await tapLetters(tester, 'حد');
+      await tester.pumpAndSettle();
+
+      expect(find.text('حد'), findsWidgets);
+
+      await tester.pumpWidget(
+        gameScreenTestApp(
+          store: store,
+          random: FixedRandom(0),
+          mode: GameMode.fiveLetters,
+          clock: clock.call,
+        ),
+      );
+
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('active-guess-display')), findsOneWidget);
+      expect(find.text('حد'), findsWidgets);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-0')),
+          matching: find.text('ح'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('guess-tile-0-1')),
+          matching: find.text('د'),
+        ),
+        findsOneWidget,
       );
     });
 
@@ -334,11 +654,10 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'abحديقةxyz');
+      await tapLetters(tester, 'حديقة');
       await tester.pump();
 
-      final field = tester.widget<TextField>(find.byType(TextField));
-      expect(field.controller?.text, 'حديقة');
+      expect(find.text('حديقة'), findsWidgets);
       expect(find.text('5 / 5'), findsOneWidget);
     });
 
@@ -356,12 +675,9 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tapLetters(tester, 'حديقة');
       await tester.pump();
-      await tester.ensureVisible(
-        find.widgetWithText(ElevatedButton, 'تحقق الآن'),
-      );
-      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tapSubmit(tester);
       await tester.pumpAndSettle();
 
       expect(find.text('أحسنت!'), findsOneWidget);
@@ -431,13 +747,11 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      for (var attempt = 0; attempt < 6; attempt++) {
-        await tester.enterText(find.byType(TextField), 'مكتبة');
+      final losingGuesses = ['دحيقة', 'قحيدة', 'حقدية', 'ديحقة', 'يقةحد', 'قديحة'];
+      for (final guess in losingGuesses) {
+        await tapLetters(tester, guess);
         await tester.pump();
-        await tester.ensureVisible(
-          find.widgetWithText(ElevatedButton, 'تحقق الآن'),
-        );
-        await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+        await tapSubmit(tester);
         await tester.pumpAndSettle();
       }
 
@@ -573,12 +887,13 @@ void main() {
       expect(find.text('🔥'), findsNothing);
 
       // Solve first puzzle.
-      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tapLetters(tester, 'حديقة');
       await tester.pump();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tapSubmit(tester);
       await tester.pumpAndSettle();
 
       // Tap Next to begin puzzle #2.
+      await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.tap(find.widgetWithText(ElevatedButton, 'التالي'));
       await tester.pumpAndSettle();
 
@@ -602,9 +917,9 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tapLetters(tester, 'حديقة');
       await tester.pump();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tapSubmit(tester);
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(find.widgetWithText(ElevatedButton, 'التالي'));
@@ -640,9 +955,9 @@ void main() {
       );
 
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'حديقة');
+      await tapLetters(tester, 'حديقة');
       await tester.pump();
-      await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+      await tapSubmit(tester);
       await tester.pumpAndSettle();
 
       await tester.ensureVisible(
@@ -679,11 +994,9 @@ void main() {
         );
 
         await tester.pumpAndSettle();
-        await tester.showKeyboard(find.byType(TextField));
-        await tester.pumpAndSettle();
-        await tester.enterText(find.byType(TextField), 'مكتبة');
+        await tapLetters(tester, 'مكتبة');
         await tester.pump();
-        await tester.tap(find.widgetWithText(ElevatedButton, 'تحقق الآن'));
+        await tapSubmit(tester);
         await tester.pumpAndSettle();
 
         await tester.ensureVisible(

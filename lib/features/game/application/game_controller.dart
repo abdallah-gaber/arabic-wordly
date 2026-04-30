@@ -121,6 +121,15 @@ class GameController extends AsyncNotifier<GameViewState> {
       return false;
     }
 
+    if (!_puzzleBank.containsWord(mode, guess)) {
+      state = AsyncData(
+        current.copyWith(
+          feedback: 'هذه الكلمة غير موجودة في بنك الكلمات الحالي.',
+        ),
+      );
+      return false;
+    }
+
     _isMutating = true;
     try {
       final existingStats = await _repository.restoreStats();
@@ -200,6 +209,30 @@ class GameController extends AsyncNotifier<GameViewState> {
     } finally {
       _isMutating = false;
     }
+  }
+
+  Future<void> updateDraftGuess(String rawGuess) async {
+    final current = state.asData?.value;
+    if (current == null || !current.session.canAcceptGuess) {
+      return;
+    }
+
+    final normalizedDraft = ArabicWordRules.sanitizeGuessInput(
+      rawGuess,
+      maxLength: current.session.wordLength,
+    );
+    if (normalizedDraft == current.session.draftGuess) {
+      return;
+    }
+
+    final nextSession = current.session.copyWith(draftGuess: normalizedDraft);
+    await _repository.saveSession(nextSession);
+    state = AsyncData(
+      current.copyWith(
+        session: nextSession,
+        clearPendingResult: true,
+      ),
+    );
   }
 
   Future<bool> useHint() async {
@@ -297,7 +330,8 @@ class GameController extends AsyncNotifier<GameViewState> {
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
-        excluding: current.session.answer,
+        excludingWord: current.session.answer,
+        excludingCategory: current.session.category,
       );
       await _saveSession(nextSession);
       state = AsyncData(
@@ -342,7 +376,8 @@ class GameController extends AsyncNotifier<GameViewState> {
       final nextSession = await _repository.createNextSession(
         mode: current.session.mode,
         round: current.session.round + 1,
-        excluding: current.session.answer,
+        excludingWord: current.session.answer,
+        excludingCategory: current.session.category,
       );
       await _saveSession(nextSession);
       state = AsyncData(

@@ -44,13 +44,27 @@ class LocalNotificationService implements NotificationService {
   static const int _streakReminderId = 5001;
   static const String _permissionPromptSeenKey =
       'streak_notification_permission_prompt_seen';
+  static const String _notificationMigrationKey =
+      'notification_icon_migration_complete';
 
   final KeyValueStore _store;
   final NotificationSchedulerPlatform _platform;
 
   @override
-  Future<void> initialize() {
-    return _platform.initialize();
+  Future<void> initialize() async {
+    await _platform.initialize();
+    if (!_platform.supportsNotifications) {
+      return;
+    }
+
+    final migrationComplete =
+        await _store.getBool(_notificationMigrationKey) ?? false;
+    if (migrationComplete) {
+      return;
+    }
+
+    await _platform.cancelAll();
+    await _store.setBool(_notificationMigrationKey, true);
   }
 
   @override
@@ -94,6 +108,7 @@ abstract class NotificationSchedulerPlatform {
   bool get supportsNotifications;
   Future<void> initialize();
   Future<void> cancel(int id);
+  Future<void> cancelAll();
   Future<void> schedule({
     required int id,
     required String title,
@@ -115,6 +130,7 @@ class FlutterNotificationSchedulerPlatform
     description: 'Reminders that help the player maintain a streak.',
     importance: Importance.high,
   );
+  static const String _androidNotificationIcon = 'ic_notification';
 
   final FlutterLocalNotificationsPlugin _plugin;
   bool _initialized = false;
@@ -135,7 +151,7 @@ class FlutterNotificationSchedulerPlatform
     } catch (_) {}
 
     const initializationSettings = InitializationSettings(
-      android: AndroidInitializationSettings('ic_stat_5amenha'),
+      android: AndroidInitializationSettings(_androidNotificationIcon),
       iOS: DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -173,6 +189,20 @@ class FlutterNotificationSchedulerPlatform
     }
 
     await _plugin.cancel(id: id);
+  }
+
+  @override
+  Future<void> cancelAll() async {
+    if (!supportsNotifications) {
+      return;
+    }
+
+    await initialize();
+    if (!_initialized) {
+      return;
+    }
+
+    await _plugin.cancelAll();
   }
 
   @override
@@ -252,6 +282,7 @@ class FlutterNotificationSchedulerPlatform
               'Reminders that help the player maintain a streak.',
           importance: Importance.high,
           priority: Priority.high,
+          icon: _androidNotificationIcon,
         ),
         iOS: DarwinNotificationDetails(),
         macOS: DarwinNotificationDetails(),

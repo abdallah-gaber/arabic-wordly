@@ -15,7 +15,7 @@
 - Mobile typing-mode UX with inline verify, pinned verify above keyboard, and compact focused layout
 - Riverpod architecture with automated coverage across domain, data, and UI
 
-This means the next milestone is not "make single-player real." It is "turn the current baseline into a polished public-ready release, then prepare for daily mode, identity, and multiplayer safely."
+Phase 1 growth work had landed on `main` before the original Phase 0 foundation polish pass. That foundation gap is now closed on the Phase 0 branch, and the next milestone is to proceed into the next roadmap slice from a clean, verified baseline.
 
 ## Locked product decisions
 
@@ -113,19 +113,19 @@ Do not let Firebase types leak into domain, controller, or presentation layers.
 
 ### Next slice
 
-**Early-game guidance and support balance**
+**Daily flow fixes and content quality pass**
 
-- Improve the first-round guidance without trivializing the answer
-- Rebalance hint visibility and support cues
-- Make help systems feel supportive without stealing focus from the board
+- Confirm the completed daily challenge flow stays coherent as later work lands
+- Revisit the bundled words, categories, and meanings for content quality, category fit, and definition accuracy
+- Replace placeholder or misleading meaning strings with curated explanations that match the actual word and category
 
 ### Slice after that
 
-**Daily mode and sharing UI**
+**Settings and local profile layer**
 
-- Add the daily entry flow on top of the local daily foundations
-- Wire a real share action using the existing formatter
-- Keep daily progress visually separate from endless mode
+- Add local settings for haptics and sound
+- Add lightweight local profile scaffolding that fits the current offline-first architecture
+- Keep the surface modest so it does not distract from the core solo loop
 
 ### Later
 

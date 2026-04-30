@@ -13,7 +13,7 @@ This project execution is now broken down into 5 formal phases. Every phase exec
   _Status: 🚧 Current_ | Stabilize solo play before any new features.
 
 - **[Phase 1: Growth & Virality (الانتشار)](./phase-1-growth.md)**
-  _Status: ⏭ Next_ | Organic growth tools — make the game shareable.
+  _Status: ✅ Completed_ | Organic growth tools — make the game shareable.
 
 - **[Phase 2: Retention & Depth (الاحتفاظ)](./phase-2-retention.md)**
   _Status: 📋 Planned_ | Keep players coming back daily.
